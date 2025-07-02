@@ -29,11 +29,10 @@ logging.basicConfig(
 # ───────────────────────────────────────────────────────────────────────────────
 
 BASE_DIR  = pathlib.Path(__file__).resolve().parent
-LC_DIR    = BASE_DIR / 'life-calendar'                       # каталог клона репозитория
-OUT_DIR   = LC_DIR / 'out'                                   # будет после `next export`
-NODE_OPTS = '--openssl-legacy-provider'                      # обход ошибки OpenSSL 3 + Webpack
-HTI       = Html2Image(browser='chrome',                     # html2image использует headless-Chrome
-                       output_path=tempfile.gettempdir())
+LC_DIR    = BASE_DIR / 'life-calendar'
+OUT_DIR   = LC_DIR / 'out'
+NODE_OPTS = '--openssl-legacy-provider'
+HTI       = Html2Image(browser='chrome',output_path=tempfile.gettempdir())
 
 
 def _run(cmd: list[str], cwd: pathlib.Path, env: dict | None = None) -> None:
