@@ -17,10 +17,10 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <title>Calendar of your Life</title>
+        <title>Календарь жизни</title>
         <meta
           name="description"
-          content="A visualization of the stages of your life!"
+          content="Визуализация этапов твоей жизни!"
         />
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />

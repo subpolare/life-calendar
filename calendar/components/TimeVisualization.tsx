@@ -68,7 +68,7 @@ export default function TimeVisualization({
           w="120px"
           color={yearToHex(12)}
         >
-          Childhood (Age 0 - 12)
+          Детство (0–12 лет)
         </Text>
         <Text
           {...defaultSideLabelStyles}
@@ -77,7 +77,7 @@ export default function TimeVisualization({
           w="150px"
           color={yearToHex(19)}
         >
-          Adolescence (Age 13 - 19)
+          Подростки (13–19 лет)
         </Text>
         <Text
           {...defaultSideLabelStyles}
@@ -86,7 +86,7 @@ export default function TimeVisualization({
           w="175px"
           color={yearToHex(34)}
         >
-          Early Adulthood (Age 20 - 34)
+          Ранняя взрослость (20–34 лет)
         </Text>
         <Text
           {...defaultSideLabelStyles}
@@ -95,7 +95,7 @@ export default function TimeVisualization({
           w="175px"
           color={yearToHex(49)}
         >
-          Middle Adulthood (Age 35 - 49)
+          Средняя взрослость (35–49 лет)
         </Text>
         <Text
           {...defaultSideLabelStyles}
@@ -104,7 +104,7 @@ export default function TimeVisualization({
           w="175px"
           color={yearToHex(79)}
         >
-          Mature Adulthood (Age 50 - 79)
+          Зрелая взрослость (50–79 лет)
         </Text>
         <Text
           {...defaultSideLabelStyles}
@@ -113,7 +113,7 @@ export default function TimeVisualization({
           w="175px"
           color={yearToHex(100)}
         >
-          Late Adulthood (Age 80 - 100)
+          Поздняя взрослость (80–100 лет)
         </Text>
       </Flex>
     </Box>
