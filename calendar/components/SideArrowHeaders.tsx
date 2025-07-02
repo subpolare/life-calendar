@@ -15,7 +15,7 @@ export default function SideArrowHeaders({ isLargerThan1100 }: Props) {
         opacity={isLargerThan1100 ? "1" : "0"}
       >
         <Arrow />
-        Years of your life
+        Годы твоей жизни
       </Heading>
       <Heading
         {...defaultSubheadingStyles}
@@ -25,7 +25,7 @@ export default function SideArrowHeaders({ isLargerThan1100 }: Props) {
         opacity={isLargerThan1100 ? "1" : "0"}
       >
         <Arrow />
-        Stages of your life
+        Этапы твоей жизни
       </Heading>
     </Flex>
   );

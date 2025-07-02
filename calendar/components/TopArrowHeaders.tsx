@@ -92,7 +92,7 @@ export default function TopArrowHeaders({
       <Menu>
         <MenuButton
           as={IconButton}
-          aria-label="Color options"
+          aria-label="Выбор цвета"
           icon={<MoonIcon />}
           variant="outline"
           my="auto"
@@ -102,26 +102,26 @@ export default function TopArrowHeaders({
             icon={<Circle size="15" outline="#2acdf1" isFilled={true} />}
             onClick={() => setCircleColor("Colorful")}
           >
-            Colorful
+            Разноцветный
           </MenuItem>
           <MenuItem
             icon={<Circle size="15" isFilled={true} />}
             onClick={() => setCircleColor("Black")}
           >
-            Dark
+            Тёмный
           </MenuItem>
           <MenuItem
             icon={<Circle size="15" outline="#909090" isFilled={true} />}
             onClick={onModalOpen}
           >
-            Custom
+            Свой
           </MenuItem>
         </MenuList>
       </Menu>
       <Modal isOpen={isModalOpen} onClose={onModalClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Custom Color</ModalHeader>
+          <ModalHeader>Свой цвет</ModalHeader>
           <ModalCloseButton />
           <ModalBody display="flex" justifyContent="center">
             <ChromePicker
@@ -132,7 +132,7 @@ export default function TopArrowHeaders({
 
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onModalClose}>
-              Close
+              Закрыть
             </Button>
             <Button
               onClick={() => {
@@ -140,7 +140,7 @@ export default function TopArrowHeaders({
                 onModalClose();
               }}
             >
-              Set
+              Установить
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -199,7 +199,7 @@ export default function TopArrowHeaders({
         ) : (
           <>
             <EditIcon mr="8px" cursor="pointer" onClick={onToggle} />
-            {birthDay.toLocaleDateString()}
+            {birthDay.toLocaleDateString("ru-RU")}
           </>
         )}
         {isLargerThan1100 && (
