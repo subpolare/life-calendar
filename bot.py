@@ -29,7 +29,7 @@ logging.basicConfig(
 # ───────────────────────────────────────────────────────────────────────────────
 
 BASE_DIR  = pathlib.Path(__file__).resolve().parent
-LC_DIR    = BASE_DIR / 'life-calendar'
+LC_DIR    = BASE_DIR / 'calendar'
 OUT_DIR   = LC_DIR / 'out'
 NODE_OPTS = '--openssl-legacy-provider'
 HTI       = Html2Image(browser='chrome',output_path=tempfile.gettempdir())
