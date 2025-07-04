@@ -1,12 +1,13 @@
-function yearToColor(year) {
-  if (year <= 12) return '#2acdf1';
-  if (year <= 19) return '#f87a40';
-  if (year <= 34) return '#ff4fe8';
-  if (year <= 49) return '#1af041';
-  if (year <= 79) return '#f5aa1f';
-  if (year <= 100) return '#db61b0';
-  return '#000000';
-}
+// Compute color per life stage with Russian labels
+const STAGE_COLORS = [
+  '#A3A380', // раннее детство
+  '#C0B887', // школьные годы
+  '#D7CE93', // высшее образование
+  '#E8D9B5', // взрослая жизнь
+  '#EFEBCE', // средний возраст
+  '#D8A48F', // пожилой возраст
+  '#BB8588'  // возраст долгожителей
+];
 
 function getBirthDate() {
   const params = new URLSearchParams(window.location.search);
@@ -25,6 +26,35 @@ function weeksSince(date) {
   return Math.round(seconds / (60 * 60 * 24 * 7));
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
+
+function stageForDate(date, birth) {
+  const baseY = birth.getFullYear();
+  const earlyEnd = new Date(baseY + 7, 8, 1);            // 1 Sep after 7th bday
+  const schoolEnd = new Date(baseY + 18, 5, 20);         // 20 Jun after 18th
+  const uniStart = new Date(baseY + 19, 8, 1);           // 1 Sep after 19th
+  const uniEnd = new Date(baseY + 24, 5, 20);            // 20 Jun after 24th
+  const adultEnd = new Date(baseY + 45, birth.getMonth(), birth.getDate());
+  const midEnd = new Date(baseY + 59, birth.getMonth(), birth.getDate());
+  const seniorEnd = new Date(baseY + 89, birth.getMonth(), birth.getDate());
+
+  if (date < earlyEnd) return 0;                         // 0-6
+  if (date >= earlyEnd && date <= schoolEnd) return 1;   // 7-18
+  if (date >= uniStart && date <= uniEnd) return 2;      // 19-24
+  if (date < adultEnd) return 3;                         // 25-45
+  if (date < midEnd) return 4;                           // 46-59
+  if (date < seniorEnd) return 5;                        // 60-89
+  return 6;                                              // 90-100
+}
+
+function colorForStage(stage, lived) {
+  const c = STAGE_COLORS[stage] || '#000000';
+  if (lived) return c;
+  // add low opacity for future weeks
+  return c + '33';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const birthDate = getBirthDate();
   const livedWeeks = weeksSince(birthDate);
@@ -38,13 +68,17 @@ document.addEventListener('DOMContentLoaded', () => {
     label.className = 'year-label';
     label.textContent = year;
     row.appendChild(label);
-    const color = yearToColor(year);
     for (let week = 0; week < weeksInYear; week++) {
+      const index = year * weeksInYear + week;
+      const date = new Date(birthDate.getTime() + index * WEEK_MS);
+      const stage = stageForDate(date, birthDate);
+      const lived = index < livedWeeks;
       const circle = document.createElement('span');
       circle.className = 'circle';
+      const color = colorForStage(stage, lived);
       circle.style.borderColor = color;
-      if (year * weeksInYear + week < livedWeeks) {
-        circle.style.backgroundColor = color + '66';
+      if (lived) {
+        circle.style.backgroundColor = color;
       }
       row.appendChild(circle);
     }

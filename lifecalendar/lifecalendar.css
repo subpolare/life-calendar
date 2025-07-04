@@ -73,9 +73,10 @@ body {
   transform: rotate(90deg);
 }
 
-.life-stage.childhood { margin-top: 110px; margin-left:-50px; width:120px; }
-.life-stage.teenage   { margin-top: 165px; margin-left:-63px; width:150px; }
-.life-stage.early     { margin-top: 170px; margin-left:-76px; width:175px; }
-.life-stage.mid       { margin-top: 240px; margin-left:-76px; width:175px; }
-.life-stage.mature    { margin-top: 365px; margin-left:-76px; width:175px; }
-.life-stage.late      { margin-top: 430px; margin-left:-76px; width:175px; }
+.stage-early-childhood { margin-top: 90px;  margin-left:-55px; width:130px; }
+.stage-school         { margin-top: 140px; margin-left:-70px; width:160px; }
+.stage-university     { margin-top: 185px; margin-left:-70px; width:160px; }
+.stage-adult          { margin-top: 260px; margin-left:-76px; width:175px; }
+.stage-middle         { margin-top: 345px; margin-left:-76px; width:175px; }
+.stage-senior         { margin-top: 430px; margin-left:-76px; width:175px; }
+.stage-old            { margin-top: 505px; margin-left:-76px; width:175px; }
