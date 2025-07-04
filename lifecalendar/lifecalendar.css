@@ -73,10 +73,10 @@ body {
   transform: rotate(90deg);
 }
 
-.stage-early-childhood { margin-top: 90px;  margin-left:-55px; width:130px; }
-.stage-school         { margin-top: 140px; margin-left:-70px; width:160px; }
-.stage-university     { margin-top: 185px; margin-left:-70px; width:160px; }
-.stage-adult          { margin-top: 260px; margin-left:-76px; width:175px; }
-.stage-middle         { margin-top: 345px; margin-left:-76px; width:175px; }
-.stage-senior         { margin-top: 430px; margin-left:-76px; width:175px; }
-.stage-old            { margin-top: 505px; margin-left:-76px; width:175px; }
+.stage-early-childhood { margin-left:-55px; width:130px; }
+.stage-school         { margin-left:-70px; width:160px; }
+.stage-university     { margin-left:-70px; width:160px; }
+.stage-adult          { margin-left:-76px; width:175px; }
+.stage-middle         { margin-left:-76px; width:175px; }
+.stage-senior         { margin-left:-76px; width:175px; }
+.stage-old            { margin-left:-76px; width:175px; }

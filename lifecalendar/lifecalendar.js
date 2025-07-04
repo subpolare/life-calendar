@@ -1,12 +1,12 @@
 // Compute color per life stage with Russian labels
 const STAGE_COLORS = [
-  '#A3A380', // раннее детство
-  '#C0B887', // школьные годы
-  '#D7CE93', // высшее образование
-  '#E8D9B5', // взрослая жизнь
-  '#EFEBCE', // средний возраст
-  '#D8A48F', // пожилой возраст
-  '#BB8588'  // возраст долгожителей
+  '#b0e0e6', // раннее детство
+  '#87ceeb', // школьные годы
+  '#5dade2', // высшее образование
+  '#48c9b0', // взрослая жизнь
+  '#1abc9c', // средний возраст
+  '#148f77', // пожилой возраст
+  '#0e6251'  // возраст долгожителей
 ];
 
 function getBirthDate() {
@@ -55,6 +55,41 @@ function colorForStage(stage, lived) {
   return c + '33';
 }
 
+function setStageLabelPositions(birth) {
+  const circleEl = document.querySelector('.circle');
+  const rowEl = document.querySelector('.year-row');
+  if (!circleEl || !rowEl) return;
+
+  const circleSize = parseFloat(getComputedStyle(circleEl).height);
+  const rowMargin = parseFloat(getComputedStyle(rowEl).marginTop);
+  const rowHeight = circleSize + rowMargin;
+
+  const baseY = birth.getFullYear();
+  const earlyEnd = new Date(baseY + 7, 8, 1);
+  const schoolEnd = new Date(baseY + 18, 5, 20);
+  const uniStart = new Date(baseY + 19, 8, 1);
+  const uniEnd = new Date(baseY + 24, 5, 20);
+  const adultEnd = new Date(baseY + 45, birth.getMonth(), birth.getDate());
+  const midEnd = new Date(baseY + 59, birth.getMonth(), birth.getDate());
+  const seniorEnd = new Date(baseY + 89, birth.getMonth(), birth.getDate());
+
+  const week = (d) => Math.round((d.getTime() - birth.getTime()) / WEEK_MS);
+
+  const positions = [
+    week(earlyEnd) / 2,
+    (week(schoolEnd) + week(earlyEnd)) / 2,
+    (week(uniEnd) + week(uniStart)) / 2,
+    (week(adultEnd) + week(uniEnd)) / 2,
+    (week(midEnd) + week(adultEnd)) / 2,
+    (week(seniorEnd) + week(midEnd)) / 2,
+    (5200 + week(seniorEnd)) / 2,
+  ];
+
+  document.querySelectorAll('.life-stage').forEach((el, idx) => {
+    el.style.marginTop = `${(positions[idx] / 52) * rowHeight}px`;
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const birthDate = getBirthDate();
   const livedWeeks = weeksSince(birthDate);
@@ -84,4 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     container.appendChild(row);
   }
+
+  setStageLabelPositions(birthDate);
 });
