@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, fil
 from datetime import date
 from dotenv import load_dotenv
 from life_calendar import calendar
-import asyncio, logging, os, random, re, secrets
+import asyncio, logging, os, random, re, secrets, os 
 load_dotenv()
 
 LIFE_BOT_TOKEN = os.getenv('LIFE_BOT_TOKEN')
@@ -127,17 +127,18 @@ async def send_first_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data['birthday'] = update.message.text
     
     day, month, year = map(int, context.user_data['birthday'].split('.'))
-    filename = f'{secrets.token_hex(8)}.png'
+    filename = f'tmp/{secrets.token_hex(8)}.png'
     calendar(date(year, month, day), filename) 
 
     with open(filename, 'rb') as photo:
         await context.bot.send_document(
             chat_id    = update.effective_chat.id,
             document   = photo,
-            caption    = f'Отлично! Держи свой первый календарь. Пока он на 80 лет и про среднего человек в России, а хочется сделать его лично для тебя.\n\nЕсли хочешь кастомизировать его, пиши /calendar', 
+            caption    = f'Держи свой первый календарь. Скинула файлом, чтобы было видно все детали. Пока он на 80 лет и про среднего человек в России, а хочется сделать его лично для тебя.\n\nЕсли хочешь кастомизировать его, пиши /calendar', 
             parse_mode = 'Markdown'
         )
     
+    os.remove(filename)
     stop_event.set()
     await typing_task
 
