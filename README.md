@@ -6,6 +6,10 @@ Welcome to the [Calendar of Life](https://t.me/TimeGridBot) codebase. We're buil
 
 We try to keep our code simple and stupid, because we are not very smart ourselves, and the only developer is a bioinformatician.  
 
+## 📅 Calendar of Life 
+
+Design and inspiration was sourced from [kurzgesagt shop poster](https://shop-us.kurzgesagt.org/collections/posters/products/lifespan-calendar-poster). Rendering is done using matplotlib only.
+
 ## 👩‍💼 License 
 
 [MIT](LICENSE.md)
@@ -13,3 +17,4 @@ We try to keep our code simple and stupid, because we are not very smart ourselv
 In other words, you can use the code for private and commercial purposes with an author attribution (by including the original license file or mentioning us).
 
 Feel free to contact us via email [nachatoi@list.ru](mailto:nachatoi@list.ru).
+
