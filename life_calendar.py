@@ -26,7 +26,7 @@ TEXT_FONT =     {'family': 'Montserrat', 'weight': 'regular', 'size': plt.rcPara
 
 # ———————————————————————————————————————— CALENDAR RENDERING ————————————————————————————————————————
 
-def create_calendar(birthday, life: list[LifeStage], fname: str = 'calendar-of-life.png', h = 13, w = 9):
+def create_calendar(birthday, life: list[LifeStage], fname, h = 13, w = 9):
     plt.rcParams.update(plt.rcParamsDefault)
     fig, ax = plt.subplots(figsize = (w, h))
     ax.set_axis_off()
@@ -118,8 +118,7 @@ class LifeStage(NamedTuple):
     date:  date
     color: str | None = None
 
-if __name__ == '__main__':
-    birthday = date(2004, 1, 19)
+def calendar(birthday, filename):
     life = [
         LifeStage('Рождение', birthday),
         LifeStage('Раннее детство', birthday + timedelta(days = 6 * 365.25 + 7),  'C0'),
@@ -128,4 +127,11 @@ if __name__ == '__main__':
         LifeStage('Взрослая жизнь', birthday + timedelta(days = 64 * 365.25), 'C3'),
         LifeStage('Старость', birthday + timedelta(days = 99 * 365.25), 'C4'),
     ]
-    create_calendar(birthday, life, fname = 'calendar-of-life.png')
+    create_calendar(birthday, life, fname = filename)
+
+if __name__ == '__main__':
+
+    birthday = date(2004, 1, 19)
+    filename = 'calendar-of-life.png'
+    
+    calendar(birthday, filename)

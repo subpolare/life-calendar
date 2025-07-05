@@ -1,11 +1,11 @@
-from telegram import Update
-from telegram.constants import ParseMode, ChatAction
-from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
+from telegram.constants import ChatAction
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes, ConversationHandler, CallbackQueryHandler
 
-import argparse, asyncio, datetime as dt, logging, os, pathlib, subprocess, sys, tempfile
-from html2image import Html2Image
+from datetime import date
 from dotenv import load_dotenv
-
+from life_calendar import calendar
+import asyncio, logging, os, random, re, secrets
 load_dotenv()
 
 LIFE_BOT_TOKEN = os.getenv('LIFE_BOT_TOKEN')
@@ -24,56 +24,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# ───────────────────────────────────────────────────────────────────────────────
-# ПУТИ И НАСТРОЙКИ ДЛЯ КАЛЕНДАРЯ
-# ───────────────────────────────────────────────────────────────────────────────
-
-BASE_DIR  = pathlib.Path(__file__).resolve().parent
-LC_DIR    = BASE_DIR / 'calendar'
-OUT_DIR   = LC_DIR / 'out'
-NODE_OPTS = '--openssl-legacy-provider'
-HTI       = Html2Image(browser='chrome',output_path=tempfile.gettempdir())
-
-
-def _run(cmd: list[str], cwd: pathlib.Path, env: dict | None = None) -> None:
-    '''Запуск shell-команды с проверкой кода выхода.'''
-    logging.info('· %s', ' '.join(cmd))
-    subprocess.run(cmd, cwd=cwd, env=env, check=True)
-
-
-def _ensure_front_ready() -> None:
-    '''Собрать и экспортировать фронт, если out/ ещё не готов.'''
-    if not (LC_DIR / 'node_modules').exists():
-        _run(['yarn', 'install'], cwd=LC_DIR)
-
-    if not OUT_DIR.exists() or not any(OUT_DIR.iterdir()):
-        env = os.environ | {'NODE_OPTIONS': NODE_OPTS}
-        _run(['yarn', 'build'],        cwd=LC_DIR, env=env)
-        _run(['yarn', 'next', 'export'], cwd=LC_DIR, env=env)
-
-def _render_calendar(bday: dt.date) -> pathlib.Path:
-    '''Синхронно создать PNG календаря и вернуть путь к нему.'''
-    _ensure_front_ready()
-
-    url  = (OUT_DIR / 'index.html').as_uri()
-    url += f'?year={bday.year}&month={bday.month}&day={bday.day}'
-
-    tmp_png = pathlib.Path(tempfile.mkstemp(suffix='.png')[1])
-    HTI.screenshot(url=url, save_as=tmp_png.name, size=(1200, 2000))
-    return tmp_png
-
-
-# ───────────────────────────────────────────────────────────────────────────────
-# СТАРТОВОЕ СООБЩЕНИЕ И ПЛАШКА «ПЕЧАТАЕТ»
-# ───────────────────────────────────────────────────────────────────────────────
-
-async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    greeting = ('Привет! Хочу помочь тебе со здоровьем и развитием. Если ответишь '
-                'на пару вопросов, я смогу построить твой собственный календарь '
-                'жизни, который поможет тебе лучше понять себя и свою жизнь.')
-    await update.message.reply_text(greeting)
-
-
 async def _keep_typing(chat_id: int, bot, stop_event: asyncio.Event):
     try:
         while not stop_event.is_set():
@@ -85,10 +35,113 @@ async def _keep_typing(chat_id: int, bot, stop_event: asyncio.Event):
     except asyncio.CancelledError:
         pass
 
+# ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
-# ───────────────────────────────────────────────────────────────────────────────
-# ГЕНЕРАЦИЯ КАЛЕНДАРЯ ЖИЗНИ
-# ───────────────────────────────────────────────────────────────────────────────
+ASK_NAME, ASK_GENDER, ASK_BIRTHDAY, ASK_SCHOOL_AGE, ASK_UNI_YESNO, ASK_UNI_AGE = range(6)
+
+async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    stop_event  = asyncio.Event()
+    typing_task = context.application.create_task(
+        _keep_typing(update.effective_chat.id, context.bot, stop_event)
+    )
+    await asyncio.sleep(random.uniform(1, 3))
+    await context.bot.send_message(
+        chat_id    = update.effective_chat.id,
+        text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Первый вопрос: Как мне тебя называть?*', 
+        parse_mode = f'Markdown'
+    )
+
+    stop_event.set()
+    await typing_task
+    return ASK_NAME
+
+
+async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    stop_event  = asyncio.Event()
+    typing_task = context.application.create_task(
+        _keep_typing(update.effective_chat.id, context.bot, stop_event)
+    )
+    await asyncio.sleep(random.uniform(1, 3))
+
+    # Сюда PostgreSQL !!! 
+    context.user_data['name'] = update.message.text
+
+    keyboard = [[
+            InlineKeyboardButton('Мужской', callback_data = 'male'),
+            InlineKeyboardButton('Женский', callback_data = 'female')
+    ]]
+    await context.bot.send_message(
+        chat_id      = update.effective_chat.id,
+        text         = f'Рада познакомиться, {context.user_data["name"]}! В каком роде мне к тебе обращаться? Выбери кнопку с нужным ответом.', 
+        parse_mode   = 'Markdown', 
+        reply_markup = InlineKeyboardMarkup(keyboard)
+    )
+
+    stop_event.set()
+    await typing_task
+    return ASK_GENDER
+
+
+async def ask_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    stop_event  = asyncio.Event()
+    typing_task = context.application.create_task(
+        _keep_typing(update.effective_chat.id, context.bot, stop_event)
+    )
+    query = update.callback_query 
+    await query.answer()
+    gender = query.data
+
+    # Сюда PostgreSQL !!! 
+    context.user_data['gender'] = gender
+
+    if context.user_data['gender'] == 'male': 
+        text = f'Спасибо за ответ! Теперь напиши свою дату рождения в формате ДД.ММ.ГГГГ, например, 01.09.1990'
+    else: 
+        text = f'Неудобно тебя о таком спрашивать... Но когда ты родилась?\n\n*Напиши свою дату рождения в формате ДД.ММ.ГГГГ, например, 01.09.1990*'  
+
+    await context.bot.send_message(
+        chat_id     = update.effective_chat.id,
+        text        = text, 
+        parse_mode  = 'Markdown'
+    )
+    
+    stop_event.set()
+    await typing_task
+    return ASK_BIRTHDAY
+
+async def send_first_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    stop_event  = asyncio.Event()
+    typing_task = context.application.create_task(
+        _keep_typing(update.effective_chat.id, context.bot, stop_event)
+    )
+
+    if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', update.message.text.strip()):
+        await context.bot.send_message(
+            chat_id    = update.effective_chat.id,
+            text       = f'Что-то не так с форматом даты. Пожалуйста, напиши дату ее в формате ДД.ММ.ГГГГ: например, 01.09.1990',
+            parse_mode = 'Markdown'
+        )
+        return ASK_BIRTHDAY
+    
+    # Сюда PostgreSQL !!! 
+    context.user_data['birthday'] = update.message.text
+    
+    day, month, year = map(int, context.user_data['birthday'].split('.'))
+    filename = f'{secrets.token_hex(8)}.png'
+    calendar(date(year, month, day), filename) 
+
+    with open(filename, 'rb') as photo:
+        await context.bot.send_document(
+            chat_id    = update.effective_chat.id,
+            document   = photo,
+            caption    = f'Отлично! Держи свой первый календарь. Пока он на 80 лет и про среднего человек в России, а хочется сделать его лично для тебя.\n\nЕсли хочешь кастомизировать его, пиши /calendar', 
+            parse_mode = 'Markdown'
+        )
+    
+    stop_event.set()
+    await typing_task
+
+# ———————————————————————————————————————— CREATING CALENDAR ————————————————————————————————————————
 
 async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event  = asyncio.Event()
@@ -96,43 +149,32 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _keep_typing(update.effective_chat.id, context.bot, stop_event)
     )
 
-    if not context.args:
-        await update.message.reply_text(
-            'Формат команды: /calendar YYYY-MM-DD\n'
-            'Напр.: /calendar 1990-07-15'
-        )
-        stop_event.set()
-        await typing_task
-        return
+    # MY CODE
 
-    try:
-        bday = dt.date.fromisoformat(context.args[0])
-    except ValueError:
-        await update.message.reply_text('Некорректная дата. Нужен формат YYYY-MM-DD.')
-        stop_event.set()
-        await typing_task
-        return
+    stop_event.set()
+    await typing_task
 
-    loop = asyncio.get_running_loop()
-    png_path = await loop.run_in_executor(None, _render_calendar, bday)
+# ———————————————————————————————————————— INITIALIZING BOT ————————————————————————————————————————
 
-    try:
-        with png_path.open('rb') as img:
-            await update.message.reply_photo(img)
-    finally:
-        png_path.unlink(missing_ok=True)
-        stop_event.set()
-        await typing_task
-
-# ───────────────────────────────────────────────────────────────────────────────
-# ИНИЦИАЦИЯ РАБОТЫ БОТА
-# ───────────────────────────────────────────────────────────────────────────────
+async def cancel(update: Update, context: ContextTypes. DEFAULT_TYPE) -> int:
+    await update.message.reply_text('Окей, если что — я всегда на связи!')
+    return ConversationHandler.END
 
 def main():
     app = ApplicationBuilder().token(LIFE_BOT_TOKEN).build()
-    print('✅ Бот успешно запустился и работает, пока ты пьешь чай')
+    print('✅ The bot has successfully launched and is working while you are drinking tea.')
 
-    app.add_handler(CommandHandler('start', handle_start))
+    conv_handler = ConversationHandler(
+        entry_points = [CommandHandler('start', handle_start)],
+        states = {
+            ASK_NAME:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
+            ASK_GENDER:   [CallbackQueryHandler(ask_birthday)],
+            ASK_BIRTHDAY: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_first_calendar)]
+        },
+        fallbacks = [CommandHandler('cancel', cancel)]
+    )
+
+    app.add_handler(conv_handler)
     app.add_handler(CommandHandler('calendar', handle_calendar))
     app.run_polling()
 
