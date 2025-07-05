@@ -6,7 +6,7 @@ We try to keep our code simple and stupid, because we are not very smart ourselv
 
 _Design and inspiration was sourced from [kurzgesagt shop poster](https://shop-us.kurzgesagt.org/collections/posters/products/lifespan-calendar-poster). Rendering is done using matplotlib only._
 
-## License 
+## 👩‍💼 License 
 
 [MIT](LICENSE.md) — you can use the code for private and commercial purposes with an author attribution (by including the original license file or mentioning us).
 
