@@ -106,14 +106,12 @@ def create_calendar(birthday, life: list[LifeStage], fname, female = True, h = 1
     else: 
         coords = [8.47, 7.10, 6.04, 2.99, 0.15]
 
-    if first: 
-        colors = ['#26415E' for _ in range(5)]
-
-    plt.text(13.4, coords[0], 'РАННЕЕ\nДЕТСТВО', ha = 'center', **BLACK_FONT, rotation = 270, color = colors[0]) 
-    plt.text(13.4, coords[1], 'ШКОЛЬНЫЕ ГОДЫ',   ha = 'center', **BLACK_FONT, rotation = 270, color = colors[1]) 
-    plt.text(13.4, coords[2], 'УНИВЕРСИТЕТ',     ha = 'center', **BLACK_FONT, rotation = 270, color = colors[2]) 
-    plt.text(13.4, coords[3], 'ВЗРОСЛАЯ ЖИЗНЬ',  ha = 'center', **BLACK_FONT, rotation = 270, color = colors[3])
-    plt.text(13.4, coords[4], 'СТАРОСТЬ',        ha = 'center', **BLACK_FONT, rotation = 270, color = colors[4]) 
+    if not first: 
+        plt.text(13.4, coords[0], 'РАННЕЕ\nДЕТСТВО', ha = 'center', **BLACK_FONT, rotation = 270, color = colors[0]) 
+        plt.text(13.4, coords[1], 'ШКОЛЬНЫЕ ГОДЫ',   ha = 'center', **BLACK_FONT, rotation = 270, color = colors[1]) 
+        plt.text(13.4, coords[2], 'УНИВЕРСИТЕТ',     ha = 'center', **BLACK_FONT, rotation = 270, color = colors[2]) 
+        plt.text(13.4, coords[3], 'ВЗРОСЛАЯ ЖИЗНЬ',  ha = 'center', **BLACK_FONT, rotation = 270, color = colors[3])
+        plt.text(13.4, coords[4], 'СТАРОСТЬ',        ha = 'center', **BLACK_FONT, rotation = 270, color = colors[4]) 
 
     # Numbering of years
     for i, year in enumerate(years):
