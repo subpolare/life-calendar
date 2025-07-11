@@ -5,7 +5,8 @@ from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, fil
 from datetime import date
 from dotenv import load_dotenv
 from life_calendar import calendar
-import asyncio, logging, os, random, re, secrets, os 
+import asyncio, logging, os, random, re, secrets, os, warnings
+warnings.filterwarnings('ignore')
 load_dotenv()
 
 LIFE_BOT_TOKEN = os.getenv('LIFE_BOT_TOKEN')
@@ -37,79 +38,28 @@ async def _keep_typing(chat_id: int, bot, stop_event: asyncio.Event):
 
 # ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
-ASK_NAME, ASK_GENDER, ASK_BIRTHDAY, ASK_SCHOOL_AGE, ASK_UNI_YESNO, ASK_UNI_AGE = range(6)
+ASK_BIRTHDAY, ASK, ASK_NAME, ASK_SCHOOL_AGE, ASK_UNI_YESNO, ASK_UNI_AGE = range(6)
 
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event  = asyncio.Event()
     typing_task = context.application.create_task(
         _keep_typing(update.effective_chat.id, context.bot, stop_event)
     )
+
+    # Добавить проврку на то, есть ли ДР в SQl: если да, то сразу переходить к созданию детального календаря. Если нет, то продолжать жить в этой функции
+
     await asyncio.sleep(random.uniform(1, 3))
     await context.bot.send_message(
         chat_id    = update.effective_chat.id,
-        text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Первый вопрос: Как мне тебя называть?*', 
+        text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Когда у тебя День рождения?* Напиши в формате ДД.ММ.ГГГГ, например, 01.09.1990', 
         parse_mode = f'Markdown'
     )
 
     stop_event.set()
     await typing_task
-    return ASK_NAME
-
-
-async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(
-        _keep_typing(update.effective_chat.id, context.bot, stop_event)
-    )
-    await asyncio.sleep(random.uniform(1, 3))
-
-    # Сюда PostgreSQL !!! 
-    context.user_data['name'] = update.message.text
-
-    keyboard = [[
-            InlineKeyboardButton('Мужской', callback_data = 'male'),
-            InlineKeyboardButton('Женский', callback_data = 'female')
-    ]]
-    await context.bot.send_message(
-        chat_id      = update.effective_chat.id,
-        text         = f'Рада познакомиться, {context.user_data["name"]}! В каком роде мне к тебе обращаться? Выбери кнопку с нужным ответом.', 
-        parse_mode   = 'Markdown', 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-    )
-
-    stop_event.set()
-    await typing_task
-    return ASK_GENDER
-
-
-async def ask_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(
-        _keep_typing(update.effective_chat.id, context.bot, stop_event)
-    )
-    query = update.callback_query 
-    await query.answer()
-    gender = query.data
-
-    # Сюда PostgreSQL !!! 
-    context.user_data['gender'] = gender
-
-    if context.user_data['gender'] == 'male': 
-        text = f'Спасибо за ответ! Теперь напиши свою дату рождения в формате ДД.ММ.ГГГГ, например, 01.09.1990'
-    else: 
-        text = f'Неудобно тебя о таком спрашивать... Но когда ты родилась?\n\n*Напиши свою дату рождения в формате ДД.ММ.ГГГГ, например, 01.09.1990*'  
-
-    await context.bot.send_message(
-        chat_id     = update.effective_chat.id,
-        text        = text, 
-        parse_mode  = 'Markdown'
-    )
-    
-    stop_event.set()
-    await typing_task
     return ASK_BIRTHDAY
 
-async def send_first_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event  = asyncio.Event()
     typing_task = context.application.create_task(
         _keep_typing(update.effective_chat.id, context.bot, stop_event)
@@ -128,32 +78,110 @@ async def send_first_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     day, month, year = map(int, context.user_data['birthday'].split('.'))
     filename = f'tmp/{secrets.token_hex(8)}.png'
-    calendar(date(year, month, day), filename) 
+    calendar(date(year, month, day), filename, first = True) 
 
     with open(filename, 'rb') as photo:
         await context.bot.send_document(
             chat_id    = update.effective_chat.id,
             document   = photo,
-            caption    = f'Держи свой первый календарь. Скинула файлом, чтобы было видно все детали. Пока он на 80 лет и про среднего человек в России, а хочется сделать его лично для тебя.\n\nЕсли хочешь кастомизировать его, пиши /calendar', 
+            caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он на 80 лет и про среднего человек в России, а хочется сделать его лично для тебя.', 
             parse_mode = 'Markdown'
         )
     
     os.remove(filename)
+
+    keyboard = [[
+        InlineKeyboardButton('Конечно!', callback_data = True),
+        InlineKeyboardButton('Нет, но я за ним вернусь', callback_data = False)
+    ]]
+    await asyncio.sleep(random.uniform(1, 3))
+    await context.bot.send_message(
+         chat_id      = update.effective_chat.id,
+         text         = f'Хочешь, создам календарь на основе именно твоей жизни?', 
+         parse_mode   = 'Markdown', 
+         reply_markup = InlineKeyboardMarkup(keyboard)
+    )
+
     stop_event.set()
     await typing_task
+    return ASK
 
-# ———————————————————————————————————————— CREATING CALENDAR ————————————————————————————————————————
-
-async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event  = asyncio.Event()
     typing_task = context.application.create_task(
         _keep_typing(update.effective_chat.id, context.bot, stop_event)
     )
 
-    # MY CODE
+    query = update.callback_query 
+    await query.answer()
+    answer = query.data
+
+    if answer: 
+        text = ''
+    else:
+        text = '' 
+        # Как все это прервать???      
+
 
     stop_event.set()
     await typing_task
+    return ASK_NAME
+
+
+
+
+# async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+#     stop_event  = asyncio.Event()
+#     typing_task = context.application.create_task(
+#         _keep_typing(update.effective_chat.id, context.bot, stop_event)
+#     )
+#     await asyncio.sleep(random.uniform(1, 3))
+# 
+#     # Сюда PostgreSQL !!! 
+#     context.user_data['name'] = update.message.text
+# 
+#     keyboard = [[
+#             InlineKeyboardButton('Мужской', callback_data = 'male'),
+#             InlineKeyboardButton('Женский', callback_data = 'female')
+#     ]]
+#     await context.bot.send_message(
+#         chat_id      = update.effective_chat.id,
+#         text         = f'Рада познакомиться, {context.user_data["name"]}! В каком роде мне к тебе обращаться? Выбери кнопку с нужным ответом.', 
+#         parse_mode   = 'Markdown', 
+#         reply_markup = InlineKeyboardMarkup(keyboard)
+#     )
+# 
+#     stop_event.set()
+#     await typing_task
+#     return ASK_GENDER
+# 
+# 
+# async def ask_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+#     stop_event  = asyncio.Event()
+#     typing_task = context.application.create_task(
+#         _keep_typing(update.effective_chat.id, context.bot, stop_event)
+#     )
+#     query = update.callback_query 
+#     await query.answer()
+#     gender = query.data
+# 
+#     # Сюда PostgreSQL !!! 
+#     context.user_data['gender'] = gender
+# 
+#     if context.user_data['gender'] == 'male': 
+#         text = f'Спасибо за ответ! Теперь напиши свою дату рождения в формате ДД.ММ.ГГГГ, например, 01.09.1990'
+#     else: 
+#         text = f'Неудобно тебя о таком спрашивать... Но когда ты родилась?\n\n*Напиши свою дату рождения в формате ДД.ММ.ГГГГ, например, 01.09.1990*'  
+# 
+#     await context.bot.send_message(
+#         chat_id     = update.effective_chat.id,
+#         text        = text, 
+#         parse_mode  = 'Markdown'
+#     )
+#     
+#     stop_event.set()
+#     await typing_task
+#     return ASK_BIRTHDAY
 
 # ———————————————————————————————————————— INITIALIZING BOT ————————————————————————————————————————
 
@@ -168,15 +196,14 @@ def main():
     conv_handler = ConversationHandler(
         entry_points = [CommandHandler('start', handle_start)],
         states = {
-            ASK_NAME:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
-            ASK_GENDER:   [CallbackQueryHandler(ask_birthday)],
-            ASK_BIRTHDAY: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_first_calendar)]
+            ASK_BIRTHDAY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
+            ASK:          [CallbackQueryHandler(ask_name)],
+            # ASK_BIRTHDAY: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_first_calendar)]
         },
         fallbacks = [CommandHandler('cancel', cancel)]
     )
 
     app.add_handler(conv_handler)
-    app.add_handler(CommandHandler('calendar', handle_calendar))
     app.run_polling()
 
 if __name__ == '__main__':
