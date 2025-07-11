@@ -38,7 +38,7 @@ async def _keep_typing(chat_id: int, bot, stop_event: asyncio.Event):
 
 # ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
-ASK_BIRTHDAY, ASK, ASK_NAME, ASK_SCHOOL_AGE, ASK_UNI_YESNO, ASK_UNI_AGE = range(6)
+ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_SCHOOL_AGE, ASK_UNI_YESNO, ASK_UNI_AGE = range(7)
 
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event  = asyncio.Event()
@@ -46,7 +46,7 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _keep_typing(update.effective_chat.id, context.bot, stop_event)
     )
 
-    # Добавить проврку на то, есть ли ДР в SQl: если да, то сразу переходить к созданию детального календаря. Если нет, то продолжать жить в этой функции
+    # Добавить проврку на то, есть ли ДР в SQl: если да, то просить. Если нет, то продолжать жить в этой функции
 
     await asyncio.sleep(random.uniform(1, 3))
     await context.bot.send_message(
@@ -117,71 +117,49 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = query.data
 
     if answer: 
-        text = ''
+        text = 'Ура! Тогда начнем со знакомства. *Как тебя зовут?* Напиши только имя.\n\n_Если интересно, как я храню твои данные, вот [подробный рассказ](https://github.com/subpolare/life-calendar/blob/main/security/secutiry.md). Коротко — ни я, ни мой создатель не можем посмотреть их без твоего ведома._'
     else:
-        text = '' 
+        text = 'Буду ждать, пока ты вернешься! Нажми /start, если решишь создать новый календарь.' 
         # Как все это прервать???      
 
+    await context.bot.send_message(
+        chat_id     = update.effective_chat.id,
+        text        = text, 
+        parse_mode  = 'Markdown'
+    )
 
     stop_event.set()
     await typing_task
     return ASK_NAME
 
+async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    stop_event  = asyncio.Event()
+    typing_task = context.application.create_task(
+        _keep_typing(update.effective_chat.id, context.bot, stop_event)
+    )
+    await asyncio.sleep(random.uniform(1, 3))
 
+    # Сюда PostgreSQL !!! 
+    context.user_data['name'] = update.message.text
 
+    keyboard = [[
+            InlineKeyboardButton('Мужской', callback_data = 'male'),
+            InlineKeyboardButton('Женский', callback_data = 'female')
+    ]]
+    await context.bot.send_message(
+        chat_id      = update.effective_chat.id,
+        text         = f'Рада познакомиться, {context.user_data["name"]}! В каком роде мне к тебе обращаться? Выбери кнопку с нужным ответом.', 
+        parse_mode   = 'Markdown', 
+        reply_markup = InlineKeyboardMarkup(keyboard)
+    )
 
-# async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-#     stop_event  = asyncio.Event()
-#     typing_task = context.application.create_task(
-#         _keep_typing(update.effective_chat.id, context.bot, stop_event)
-#     )
-#     await asyncio.sleep(random.uniform(1, 3))
-# 
-#     # Сюда PostgreSQL !!! 
-#     context.user_data['name'] = update.message.text
-# 
-#     keyboard = [[
-#             InlineKeyboardButton('Мужской', callback_data = 'male'),
-#             InlineKeyboardButton('Женский', callback_data = 'female')
-#     ]]
-#     await context.bot.send_message(
-#         chat_id      = update.effective_chat.id,
-#         text         = f'Рада познакомиться, {context.user_data["name"]}! В каком роде мне к тебе обращаться? Выбери кнопку с нужным ответом.', 
-#         parse_mode   = 'Markdown', 
-#         reply_markup = InlineKeyboardMarkup(keyboard)
-#     )
-# 
-#     stop_event.set()
-#     await typing_task
-#     return ASK_GENDER
-# 
-# 
-# async def ask_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-#     stop_event  = asyncio.Event()
-#     typing_task = context.application.create_task(
-#         _keep_typing(update.effective_chat.id, context.bot, stop_event)
-#     )
-#     query = update.callback_query 
-#     await query.answer()
-#     gender = query.data
-# 
-#     # Сюда PostgreSQL !!! 
-#     context.user_data['gender'] = gender
-# 
-#     if context.user_data['gender'] == 'male': 
-#         text = f'Спасибо за ответ! Теперь напиши свою дату рождения в формате ДД.ММ.ГГГГ, например, 01.09.1990'
-#     else: 
-#         text = f'Неудобно тебя о таком спрашивать... Но когда ты родилась?\n\n*Напиши свою дату рождения в формате ДД.ММ.ГГГГ, например, 01.09.1990*'  
-# 
-#     await context.bot.send_message(
-#         chat_id     = update.effective_chat.id,
-#         text        = text, 
-#         parse_mode  = 'Markdown'
-#     )
-#     
-#     stop_event.set()
-#     await typing_task
-#     return ASK_BIRTHDAY
+    stop_event.set()
+    await typing_task
+    return ASK_GENDER
+
+async def ask_school_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pass
+
 
 # ———————————————————————————————————————— INITIALIZING BOT ————————————————————————————————————————
 
@@ -198,7 +176,7 @@ def main():
         states = {
             ASK_BIRTHDAY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
             ASK:          [CallbackQueryHandler(ask_name)],
-            # ASK_BIRTHDAY: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_first_calendar)]
+            # ASK_GENDER: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_school_age)]
         },
         fallbacks = [CommandHandler('cancel', cancel)]
     )
