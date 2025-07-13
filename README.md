@@ -12,7 +12,7 @@ We try to keep our code simple and stupid, because we are not very smart ourselv
 ![conda](https://img.shields.io/badge/conda%20-%2342B029.svg?&style=for-the-badge&logo=anaconda&logoColor=white)
 ![git](https://img.shields.io/badge/git%20-%23F05033.svg?&style=for-the-badge&logo=git&logoColor=white) 
 
-_Design and inspiration was sourced from [kurzgesagt shop poster](https://shop-us.kurzgesagt.org/collections/posters/products/lifespan-calendar-poster). Rendering is done using matplotlib only._
+Design and inspiration was sourced from [kurzgesagt shop poster](https://shop-us.kurzgesagt.org/collections/posters/products/lifespan-calendar-poster). Rendering is done using matplotlib only.
 
 ## 👩‍💼 License 
 
