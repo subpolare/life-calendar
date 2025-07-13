@@ -2,6 +2,8 @@
 
 Welcome to the [Calendar of Life](https://t.me/TimeGridBot) codebase. We're building our own life expand community. We've opensourced the code so that everyone can learn about how collections are created and the community is regulated. We also leave the opportunity for participants to modify the code and propose those changes that they consider necessary.
 
+## 🛠 Code & Design 
+
 We try to keep our code simple and stupid, because we are not very smart ourselves, and the only developer is a bioinformatician. We only used Python and PostgreSQL. 
 
 ![python](https://img.shields.io/badge/python%20-%2314354C.svg?&style=for-the-badge&logo=python&logoColor=white)
