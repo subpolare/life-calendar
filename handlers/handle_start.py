@@ -38,7 +38,6 @@ async def get_or_create_user_key(user_id: int, conn):
         user_key = encryption.decrypt_key(key_record)
         return user_key
     else:
-        # Создаем новый ключ, шифруем мастер-ключом и сохраняем
         user_key = encryption.generate_user_key()
         key_record = encryption.encrypt_key(user_key)
         await conn.execute('''
@@ -93,15 +92,15 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     typing_task = context.application.create_task(
         _keep_typing(update.effective_chat.id, context.bot, stop_event)
     )
+
+    stop_event.set()
+    await typing_task
     
     await context.bot.send_message(
         chat_id    = update.effective_chat.id,
         text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Когда у тебя День рождения?* Напиши в формате ДД.ММ.ГГГГ, например, 01.09.1990', 
         parse_mode = f'Markdown'
     )
-
-    stop_event.set()
-    await typing_task
     return ASK_BIRTHDAY
 
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -122,13 +121,13 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await set_birth(update.effective_user.id, context.user_data['birthday'])
     day, month, year = map(int, context.user_data['birthday'].split('.'))
     filename = f'tmp/{secrets.token_hex(8)}.png'
-    calendar(date(year, month, day), filename, first = True) 
+    calendar(date(year, month, day), filename, first = True, female = False) 
 
     with open(filename, 'rb') as photo:
         await context.bot.send_document(
             chat_id    = update.effective_chat.id,
             document   = photo,
-            caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он на 80 лет и про среднего человек в России, а хочется сделать его лично для тебя.', 
+            caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он на 70 лет и про среднего человек в России, а хочется сделать его лично для тебя.', 
             parse_mode = 'Markdown'
         )
     
@@ -141,10 +140,10 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event.set()
     await typing_task
     await context.bot.send_message(
-         chat_id      = update.effective_chat.id,
-         text         = f'Хочешь, создам календарь на основе именно твоей жизни?', 
-         parse_mode   = 'Markdown', 
-         reply_markup = InlineKeyboardMarkup(keyboard)
+        chat_id      = update.effective_chat.id,
+        text         = f'Хочешь, создам календарь на основе именно твоей жизни?', 
+        parse_mode   = 'Markdown', 
+        reply_markup = InlineKeyboardMarkup(keyboard)
     )
     return ASK
 
@@ -164,26 +163,25 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     if answer == 'yes': 
-        text = 'Ура! Тогда начнем со знакомства. <b>Как тебя зовут?</b> Напиши только имя.\n\n<i>Если интересно, как я храню твои данные, вот <a href="https://github.com/subpolare/life-calendar/blob/main/security/secutiry.md">подробный рассказ</a>. Коротко — ни я, ни мой создатель не можем посмотреть их без твоего ведома.</i>'
+        stop_event.set()
+        await typing_task
+        text = 'Ура! Тогда начнем со знакомства. <b>Как тебя зовут?</b> Напиши только имя.'
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
             text        = text, 
             parse_mode  = 'HTML'
         )
-
-        stop_event.set()
-        await typing_task
         return ASK_NAME
     else:
+        stop_event.set()
+        await typing_task
+
         text = 'Буду ждать, пока ты вернешься! Нажми /start, если решишь создать новый календарь.' 
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
             text        = text, 
             parse_mode  = 'Markdown'
         )
-
-        stop_event.set()
-        await typing_task
         return ConversationHandler.END
 
 async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -199,14 +197,14 @@ async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton('Мужской', callback_data = 'male'),
             InlineKeyboardButton('Женский', callback_data = 'female')
     ]]
+    stop_event.set()
+    await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
-        text         = f'Рада познакомиться, {context.user_data["name"]}! В каком роде мне к тебе обращаться? Выбери кнопку с нужным ответом.', 
+        text         = f'Рада познакомиться, {context.user_data["name"]}! Извини за вопрос, но ты парень или девушка? Выбери кнопку с нужным ответом.', 
         parse_mode   = 'Markdown', 
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
-    stop_event.set()
-    await typing_task
     return ASK_GENDER
 
 async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -220,24 +218,43 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gender = query.data
 
     await context.bot.delete_message(
-        chat_id =query.message.chat.id,
-        message_id =query.message.message_id
+        chat_id    = query.message.chat.id,
+        message_id = query.message.message_id
     )
     context.user_data['gender'] = gender
     await set_gender(update.effective_user.id, context.user_data['gender'])
 
     if gender == 'male':
-        text = f'Теперь точно знакомы!'
+        stop_event.set()
+        await typing_task
+        await context.bot.send_message(
+            chat_id      = update.effective_chat.id,
+            text         = 'Отлично! Теперь я готова создать калндарь лично для тебя.',
+            parse_mode   = 'Markdown', 
+        )
     else:  
-        text = f'Теперь точно знакомы!'
+        await context.bot.send_message(
+            chat_id      = update.effective_chat.id,
+            text         = 'Тебе повезло! Тот факт, что ты девушка, разблокировал в твоем календаре сразу 10 лишних строк!', 
+            parse_mode   = 'Markdown', 
+        )
+        user_data = await get_user_data(update.effective_user.id) 
+        day, month, year = map(int, user_data['birth'].split('.'))
+        filename = f'tmp/{secrets.token_hex(8)}.png'
+        calendar(date(year, month, day), filename, first = True, female = True)
+
+        stop_event.set()
+        await typing_task   
+
+        with open(filename, 'rb') as photo:
+            await context.bot.send_document(
+                chat_id    = update.effective_chat.id,
+                document   = photo,
+                caption    = f'Вот твой новый календарик: на 12% длиннее, чем был. Теперь давай сделаем его еще точнее и добавим события из твоей жизни.', 
+                parse_mode = 'Markdown'
+            )
+        os.remove(filename)
+
+    # ASK DATES
     
-    stop_event.set()
-    await typing_task
-
-    await context.bot.send_message(
-        chat_id      = update.effective_chat.id,
-        text         = text, 
-        parse_mode   = 'Markdown', 
-    )
-
     return ConversationHandler.END 
