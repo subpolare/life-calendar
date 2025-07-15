@@ -2,17 +2,41 @@
 
 Welcome to the [Calendar of Life](https://t.me/TimeGridBot) codebase. We're building our own life expand community. We've opensourced the code so that everyone can learn about how collections are created and the community is regulated. We also leave the opportunity for participants to modify the code and propose those changes that they consider necessary.
 
-We only use articles from the [nature](https://www.nature.com/), [nature medicine](https://www.nature.com/nm/) and [nature review journals](https://www.nature.com/siteindex) as a source of information for newsletters. We try to keep the database of articles and journals extremely limited and manually reviewed by our specialists. This is how we try to be as scientifically correct as possible. 
-
-Also we build our small comminity with private and paid memberships that has emerged around the Calendar of Life bot. We are trying to build a peaceful ecosystem you can trust. Therefore, we carefully select and filter new members, avoiding anonymous users. 
-
-## 🛠 Code
+## 🛠 Tech stack
 
 We try to keep our code simple and stupid, because we are not very smart ourselves, and the only developer is a bioinformatician. We only used Python and PostgreSQL but in the future we want to move calendar generation to JavaScript and encryption to Go.
 
 ![python](https://img.shields.io/badge/python%20-%2314354C.svg?&style=for-the-badge&logo=python&logoColor=white)
 ![postgres](https://img.shields.io/badge/postgres-%23316192.svg?&style=for-the-badge&logo=postgresql&logoColor=white) 
 ![git](https://img.shields.io/badge/git%20-%23F05033.svg?&style=for-the-badge&logo=git&logoColor=white) 
+
+## ⚕️ Scientific & Research base
+
+We only use articles from the following jornals as a source of information for newsletters. We try to keep the database of articles and journals extremely limited and manually reviewed by our specialists. This is how we try to be as scientifically correct as possible. 
+
+* [nature](https://www.nature.com/)
+* [nature cancer](https://www.nature.com/natcancer/)
+* [nature cardiovascular research](https://www.nature.com/natcardiovascres/)
+* [nature genetics](https://www.nature.com/ng/)
+* [nature health](https://www.nature.com/naturehealth/)
+* [nature immunology](https://www.nature.com/ni/)
+* [nature human behaviour](https://www.nature.com/nathumbehav/)
+* [nature medicine](https://www.nature.com/nm/)
+* [nature metabolism](https://www.nature.com/natmetab/)
+* [nature neuroscience](https://www.nature.com/neuro/)
+* [nature reviews cancer](https://www.nature.com/nrc/)
+* [nature reviews cardiology](https://www.nature.com/nrcardio/)
+* [nature reviews clinical oncology](https://www.nature.com/nrclinonc/)
+* [nature reviews drug discovery](https://www.nature.com/nrd/)
+* [nature reviews endocrinology](https://www.nature.com/nrendo/)
+* [nature reviews gastroenterology & hepatology](https://www.nature.com/nrgastro/)
+* [nature reviews genetics](https://www.nature.com/nrg/)
+* [nature reviews immunoloav](https://www.nature.com/nri/)
+* [nature reviews nephrology](https://www.nature.com/nrneph/)
+* [nature reviews neurology](https://www.nature.com/nrneurol/)
+* [nature reviews neuroscience](https://www.nature.com/nrn/)
+* [nature reviews rheumatology](https://www.nature.com/nrrheum/)
+* [nature reviews urology](https://www.nature.com/nrurol/)
 
 ## 👩‍💼 License 
 
