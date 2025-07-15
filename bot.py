@@ -1,7 +1,8 @@
-from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER
-from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_dates
+from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE
+from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar
 
 from telegram import Update
+from telegram.request import HTTPXRequest
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes, ConversationHandler, CallbackQueryHandler
 
 from dotenv import load_dotenv
@@ -25,29 +26,39 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+request = HTTPXRequest(
+    connection_pool_size = 50.0,
+    pool_timeout         = 30.0, 
+    connect_timeout      = 10.0,
+    read_timeout         = 60.0,
+    write_timeout        = 60.0,
+    media_write_timeout  = 120.0,
+)
+
 # ———————————————————————————————————————— INITIALIZING BOT ————————————————————————————————————————
 
-
 async def cancel(update: Update, context: ContextTypes. DEFAULT_TYPE):
-    await update.message.reply_text('Хорошо, если что — я всегда на связи!')
+    await update.message.reply_text('Хорошо, если передумаешь — я всегда тут')
     return ConversationHandler.END
 
 def main():
-    app = ApplicationBuilder().token(LIFE_BOT_TOKEN).build()
+    app = ApplicationBuilder().token(LIFE_BOT_TOKEN).request(request).build()
     print('✅ The bot has successfully launched and is working while you are drinking tea.')
 
-    conv_handler = ConversationHandler(
+    start_conversation = ConversationHandler(
         entry_points = [CommandHandler('start', handle_start)],
         states = {
             ASK_BIRTHDAY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
             ASK         : [CallbackQueryHandler(ask_name)],
             ASK_NAME    : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
-            ASK_GENDER  : [CallbackQueryHandler(ask_dates)],
+            ASK_GENDER  : [CallbackQueryHandler(ask_type)],
+            ASK_TYPE    : [CallbackQueryHandler(ask_dates)],
+            ASK_DATE    : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
         },
         fallbacks = [CommandHandler('cancel', cancel)]
     )
 
-    app.add_handler(conv_handler)
+    app.add_handler(start_conversation)
     app.run_polling()
 
 if __name__ == '__main__':
