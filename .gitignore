@@ -1,5 +1,6 @@
 __pycache__/
 handlers/__pycache__/
+style/
 tmp/
 *.pyc
 .env
