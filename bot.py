@@ -1,3 +1,4 @@
+from handlers.handle_calendar import handle_calendar
 from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE
 from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar
 
@@ -5,27 +6,12 @@ from telegram import Update
 from telegram.request import HTTPXRequest
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes, ConversationHandler, CallbackQueryHandler
 
+import os, warnings
 from dotenv import load_dotenv
-import logging, os, os, warnings
 warnings.filterwarnings('ignore')
 load_dotenv()
 
 LIFE_BOT_TOKEN = os.getenv('LIFE_BOT_TOKEN')
-STAT_BOT_TOKEN = os.getenv('STAT_BOT_TOKEN')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-
-DATABASE_URL       = os.getenv('DATABASE_URL')
-DATABASE_PORT      = os.getenv('DATABASE_PORT')
-DATABASE_USER      = os.getenv('DATABASE_USER')
-DATABASE_PASSWORD  = os.getenv('DATABASE_PASSWORD')
-ENCRYPTION_KEY     = os.getenv('ENCRYPTION_KEY')
-
-logging.basicConfig(
-    level=logging.WARNING,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
 request = HTTPXRequest(
     connection_pool_size = 50.0,
     pool_timeout         = 30.0, 
@@ -48,17 +34,26 @@ def main():
     start_conversation = ConversationHandler(
         entry_points = [CommandHandler('start', handle_start)],
         states = {
-            ASK_BIRTHDAY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
-            ASK         : [CallbackQueryHandler(ask_name)],
-            ASK_NAME    : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
-            ASK_GENDER  : [CallbackQueryHandler(ask_type)],
-            ASK_TYPE    : [CallbackQueryHandler(ask_dates)],
-            ASK_DATE    : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
+            ASK_BIRTHDAY : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
+            ASK          : [CallbackQueryHandler(ask_name)],
+            ASK_NAME     : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
+            ASK_GENDER   : [CallbackQueryHandler(ask_type)],
+            ASK_TYPE     : [CallbackQueryHandler(ask_dates)],
+            ASK_DATE     : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
+        },
+        fallbacks = [CommandHandler('cancel', cancel)]
+    )
+
+    calendar_conversation = ConversationHandler(
+        entry_points = [CommandHandler('calendar', handle_calendar)],
+        states = {
+            # STATES
         },
         fallbacks = [CommandHandler('cancel', cancel)]
     )
 
     app.add_handler(start_conversation)
+    app.add_handler(calendar_conversation)
     app.run_polling()
 
 if __name__ == '__main__':

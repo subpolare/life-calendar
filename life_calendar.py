@@ -10,8 +10,6 @@ from matplotlib.font_manager import fontManager
 from matplotlib.patches import FancyArrowPatch
 import matplotlib.pyplot as plt
 
-# ———————————————————————————————————————— FONT SETTINGS ————————————————————————————————————————
-
 fontManager.addfont('fonts/Montserrat-Bold.ttf')
 fontManager.addfont('fonts/Montserrat-Black.ttf')
 fontManager.addfont('fonts/Montserrat-Regular.ttf')
@@ -23,8 +21,6 @@ SUBTITLE_FONT = {'family': 'Montserrat', 'weight': 'black',   'size': plt.rcPara
 BLACK_FONT =    {'family': 'Montserrat', 'weight': 'black',   'size': plt.rcParams.get('font.size', 12) * 0.6}
 BOLD_FONT =     {'family': 'Montserrat', 'weight': 'bold',    'size': plt.rcParams.get('font.size', 12) * 0.6}
 TEXT_FONT =     {'family': 'Montserrat', 'weight': 'regular', 'size': plt.rcParams.get('font.size', 12) * 0.6}
-
-# ———————————————————————————————————————— CALENDAR RENDERING ————————————————————————————————————————
 
 def create_calendar(birthday, fname, female = True, h = 13, w = 9, transparent = False, event = None, label = None):
     plt.rcParams.update(plt.rcParamsDefault)
@@ -95,7 +91,6 @@ def create_calendar(birthday, fname, female = True, h = 13, w = 9, transparent =
     plt.text(6.3, 10,  'Календарь жизни', ha = 'center', va = 'center', **TITLE_FONT, color = color) 
     plt.text(6.3, 9.6, 'Время на Земле ограничено и очень важно. На что ты его потратишь?', ha = 'center', va = 'center', **SUBTITLE_FONT, color = color)
 
-    # The left arrow 
     arrow = FancyArrowPatch(
         posA = (-0.95, 9.07), posB = (-0.95, 8.4),
         arrowstyle = '-|>', connectionstyle = 'arc3, rad = 0',
@@ -105,7 +100,6 @@ def create_calendar(birthday, fname, female = True, h = 13, w = 9, transparent =
     plt.gca().add_patch(arrow)
     plt.text(-0.8, 8.63, 'ВОЗРАСТ', ha = 'center', **BOLD_FONT, rotation = 270, color = color) 
 
-    # Upper arrow
     arrow = FancyArrowPatch(
         posA = (-0.12, 9.18), posB = (3.5, 9.18),
         arrowstyle = '-|>', connectionstyle = 'arc3, rad = 0',
@@ -115,14 +109,12 @@ def create_calendar(birthday, fname, female = True, h = 13, w = 9, transparent =
     plt.gca().add_patch(arrow)
     plt.text(0.8, 9.23, 'НЕДЕЛИ В ГОДУ', ha = 'center', **BOLD_FONT, color = color) 
 
-    # Numbering of years
     for i, year in enumerate(years):
         if (i) % 10 == 0 or i == 0:
             ax.text(-0.4, year, f'{i}', horizontalalignment = 'center', verticalalignment = 'center', **BOLD_FONT, color = color)
         else: 
             ax.text(-0.4, year, f'{i}', horizontalalignment = 'center', verticalalignment = 'center', **TEXT_FONT, color = color)
 
-    # Image postprocessing
     plt.savefig(fname, dpi = 600, transparent = transparent)
     img = Image.open(fname)
     cropped = img.crop((700, 350, img.width - 440, img.height - 1000))
