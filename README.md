@@ -12,22 +12,7 @@ We try to keep our code simple and stupid, because we are not very smart ourselv
 
 ## ⚕️ Scientific & Research base
 
-We only use articles from the following jornals as a source of information for newsletters. We try to keep the database of articles and journals extremely limited and manually reviewed by our specialists. This is how we try to be as scientifically correct as possible. 
-
-* [nature](https://www.nature.com/)
-* [nature cancer](https://www.nature.com/natcancer/), [nature reviews cancer](https://www.nature.com/nrc/) and [nature reviews clinical oncology](https://www.nature.com/nrclinonc/)
-* [nature cardiovascular research](https://www.nature.com/natcardiovascres/) and [nature reviews cardiology](https://www.nature.com/nrcardio/)
-* [nature genetics](https://www.nature.com/ng/) and [nature reviews genetics](https://www.nature.com/nrg/)
-* [nature health](https://www.nature.com/naturehealth/)
-* [nature immunology](https://www.nature.com/ni/) and [nature reviews immunoloav](https://www.nature.com/nri/)
-* [nature human behaviour](https://www.nature.com/nathumbehav/)
-* [nature medicine](https://www.nature.com/nm/) amd [nature reviews drug discovery](https://www.nature.com/nrd/)
-* [nature metabolism](https://www.nature.com/natmetab/)
-* [nature neuroscience](https://www.nature.com/neuro/), [nature reviews neurology](https://www.nature.com/nrneurol/) and [nature reviews neuroscience](https://www.nature.com/nrn/)
-* [nature reviews endocrinology](https://www.nature.com/nrendo/)
-* [nature reviews gastroenterology & hepatology](https://www.nature.com/nrgastro/) and [nature reviews nephrology](https://www.nature.com/nrneph/)
-* [nature reviews rheumatology](https://www.nature.com/nrrheum/)
-* [nature reviews urology](https://www.nature.com/nrurol/)
+We only use articles from the [nature jornals](https://www.nature.com/siteindex) (preferring only nature and nature review journals) as a source of information for newsletters. We try to keep the database of articles and journals extremely limited and manually reviewed by our specialists. This is how we try to be as scientifically correct as possible. 
 
 ## 👩‍💼 License 
 
