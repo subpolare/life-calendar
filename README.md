@@ -4,6 +4,8 @@ Welcome to the [Calendar of Life](https://t.me/TimeGridBot) codebase. We're buil
 
 We only use articles from the [nature](https://www.nature.com/), [nature medicine](https://www.nature.com/nm/) and [nature review journals](https://www.nature.com/siteindex) as a source of information for newsletters. We try to keep the database of articles and journals extremely limited and manually reviewed by our specialists. This is how we try to be as scientifically correct as possible. 
 
+Also we build our small comminity with private and paid memberships that has emerged around the Calendar of Life bot. We are trying to build a peaceful ecosystem you can trust. Therefore, we carefully select and filter new members, avoiding anonymous users. 
+
 ## 🛠 Code
 
 We try to keep our code simple and stupid, because we are not very smart ourselves, and the only developer is a bioinformatician. We only used Python and PostgreSQL but in the future we want to move calendar generation to JavaScript and encryption to Go.
