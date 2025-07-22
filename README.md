@@ -15,7 +15,7 @@ If you want to install and run our project locally, make sure that [Docker](http
 ```bash
 git clone https://github.com/subpolare/life-calendar.git
 cd life-calendar
-docker compose up 
+docker compose up --build -d
 ```
 
 ## 👩‍💼 License 
