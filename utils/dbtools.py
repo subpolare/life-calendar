@@ -186,11 +186,19 @@ async def get_user_data(user_id: int):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         res = await conn.fetchrow('SELECT name, birth, gender, key FROM users WHERE id = $1;', user_id)
-        user_key = encryption.decrypt_key(json.loads(res['key']))
-        data = {}
+        if not res or not res['key']:
+            return {}
+        try:
+            user_key = encryption.decrypt_key(json.loads(res['key']))
+        except Exception:
+            return {}
+        data: dict[str, str | None] = {}
         for k in ['name', 'birth', 'gender']:
             if res[k]:
-                data[k] = encryption.decrypt(json.loads(res[k]), user_key).decode()
+                try:
+                    data[k] = encryption.decrypt(json.loads(res[k]), user_key).decode()
+                except Exception:
+                    data[k] = None
         return data
     
 async def set_action(user_id: int, gender: str):

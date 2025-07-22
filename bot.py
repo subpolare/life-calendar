@@ -30,9 +30,10 @@ async def cancel(update: Update, context: ContextTypes. DEFAULT_TYPE):
     await update.message.reply_text('Хорошо, если передумаешь — я всегда тут')
     return ConversationHandler.END
 
-def error_handler(update, context):
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(context.error, telegram.error.Forbidden):
         return
+    print(f'Unhandled error: {context.error}')
 
 def main():
     application = (

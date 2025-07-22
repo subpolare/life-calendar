@@ -231,8 +231,15 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query 
     await query.answer()
     answer = query.data
-    user_data = await get_user_data(update.effective_user.id) 
-    gender = user_data['gender']
+    user_data = await get_user_data(update.effective_user.id)
+    gender = user_data.get('gender')
+    if not gender:
+        await context.bot.send_message(
+            chat_id    = update.effective_chat.id,
+            text       = 'Упс, не получилось получить твои данные. Давай начнём заново: нажми /start',
+            parse_mode = 'Markdown',
+        )
+        return ConversationHandler.END
 
     await context.bot.delete_message(
         chat_id = query.message.chat.id,
