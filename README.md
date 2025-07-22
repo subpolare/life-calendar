@@ -18,6 +18,8 @@ cd life-calendar
 docker compose up --build -d
 ```
 
+If you want to see logs during local startup, use `docker compose up --build` (without `-d`). 
+
 ## 👩‍💼 License 
 
 [MIT](LICENSE.md) — you can use the code for private and commercial purposes with an author attribution (by including the original license file or mentioning us). Feel free to contact us via email [nachatoi@list.ru](mailto:nachatoi@list.ru).
