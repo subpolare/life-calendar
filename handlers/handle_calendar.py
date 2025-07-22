@@ -1,12 +1,13 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
+import telegram
 
 from typing import Any
 from datetime import date
 from dotenv import load_dotenv
 from utils.typing import _keep_typing
 from life_calendar import create_calendar
-import os, warnings, asyncio, re, datetime
+import os, warnings, asyncio, re, secrets, random, json
 from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event
 warnings.filterwarnings('ignore')
 load_dotenv()
@@ -42,6 +43,14 @@ def events2text(events: list[dict[str, Any]]) -> str:
             lines.append(f'{i + 1}. {name}: {_fmt(start)} – {_fmt(end)} года.')
     return '\n'.join(lines)
 
+def _to_event(obj):
+    if isinstance(obj, list):
+        dates = [date.fromisoformat(d) for d in obj]
+        return dates[0] if len(dates) == 1 else tuple(dates[:2])
+    if isinstance(obj, str):
+        return date.fromisoformat(obj)
+    return obj
+
 # ———————————————————————————————————————— CALENDAR HANDLERS ————————————————————————————————————————
 
 async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -57,7 +66,7 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton('Хочу кое-что удалить',       callback_data = 'remove')],
             [InlineKeyboardButton('Поменять название или даты', callback_data = 'edit')],
             [InlineKeyboardButton('Нарисовать календарь',       callback_data = 'calendar')],
-            [InlineKeyboardButton('Назад',                      callback_data = 'stop')],
+            [InlineKeyboardButton('Ничего не хочу',             callback_data = 'stop')],
     ]
     stop_event.set()
     await typing_task
@@ -110,8 +119,8 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         keyboard = []
         for i, item in enumerate(sorted(events, key = _first_date)):
-            name, _ = next(iter(item.items()))
-            keyboard.append([InlineKeyboardButton(f'{i + 1}. {name}', callback_data = i)])
+            name, dates = next(iter(item.items()))
+            keyboard.append([InlineKeyboardButton(f'{i + 1}. {name}', callback_data = '&|$|&'.join([name, json.dumps(dates)]))])
         if action == 'remove': 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
@@ -201,21 +210,21 @@ async def add_new_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event  = asyncio.Event()
     typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
+    msg = update.callback_query.message if update.callback_query else update.effective_message
+    try:
+        await context.bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
+    except telegram.error.TelegramError:
+        pass
     await asyncio.sleep(3)
 
     query = update.callback_query 
     await query.answer()
+    event_type, event_dates = query.data.split('&|$|&')
+    event_dates = json.loads(event_dates)
     action = await get_action(update.effective_user.id)
-    events = await get_events(update.effective_user.id) 
 
     if action == 'remove': 
-        for i, item in enumerate(sorted(events, key = _first_date)):
-            event_type, event_dates = next(iter(item.items()))
-            if i + 1 == query.data: 
-                break
         await delete_event(update.effective_user.id, event_type, event_dates)
-        await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
-
         stop_event.set()
         await typing_task
         await context.bot.send_message(
@@ -227,5 +236,40 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif action == 'edit': 
         pass
+    
     elif action == 'calendar': 
-        pass
+        user_data = await get_user_data(update.effective_user.id)
+        day, month, year = map(int, user_data['birth'].split('.'))
+
+        birth = date(year, month, day)
+        female = user_data['gender'] == 'female'
+        filename = f'tmp/{secrets.token_hex(8)}.png'
+        create_calendar(birth, fname = filename, female = female, event = _to_event(event_dates), label = event_type)
+
+        stop_event.set()
+        await typing_task
+        with open(filename, 'rb') as photo:
+            phrases = [
+                'Отметила даты в календаре — посмотри, как это смотрится в контексте всей твоей жизни. Захочешь еще один — пиши /calendar',
+                'Проставила события на календаре — смотри, как выглядит общая картина. Для нового календаря нажми /calendar',
+                'Внесла даты в календарь — оцени масштаб в рамках всего твоего жизненного пути. Нужен еще один календарь — пиши /calendar',
+                'Взгляни на это в перспективе всей жизни. Хочешь создать новый календарь — нажми /calendar',
+                'Зафиксировала даты на календаре. Для следующего пиши /calendar',
+                'Оцени это в масштабе всего твоего существования. Нужен новый календарь — пиши /calendar',
+                'Получилась целая временная панорама твоей жизни! Для создания нового календаря пиши /calendar',
+                'Вот, как это выглядит в твоем жизненном контексте. Захочешь еще один календарь — пиши /calendar',
+                'Внесла это в календарь — взгляни на масштабы своего пути. Хочешь сделать еще один календарь? Пиши /calendar',
+                'Смотри, как это выглядит в рамках всей твоей жизни. Для нового календаря — пиши /calendar'
+            ]
+            message = random.choice(phrases)
+            await context.bot.send_document(
+                chat_id    = update.effective_chat.id,
+                document   = photo,
+                caption    = message, 
+                parse_mode = 'Markdown'
+            )
+            os.remove(filename)
+        return ConversationHandler.END
+
+
+

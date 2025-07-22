@@ -308,6 +308,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
             caption    = f'Нанесла даты на календарь — смотри, как это выглядит в масштабах твоей жизни. ', 
             parse_mode = 'Markdown'
         )
+        os.remove(filename)
     await asyncio.sleep(3)
 
     await context.bot.send_message(
