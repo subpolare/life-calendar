@@ -351,13 +351,13 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
     await asyncio.sleep(3)
 
     await context.bot.send_message(
-        chat_id      = update.effective_chat.id,
-        text         = (
+        chat_id    = update.effective_chat.id,
+        text       = (
             'Чтобы ты мог разблокировать новые клеточки в нем, каждый день я буду присылать тебе полезные советы по продлению жизни.\n\n' 
             'Я собираю их из статей научного журнала [nature](https://www.nature.com/) и разных журналов nature reviews. Это топовые научные журналы, '
             'каждая статья в которых проверяется учеными со всего мира.'
         ),
-        parse_mode   = 'Markdown', 
+        parse_mode = 'Markdown', 
     )
         
     await asyncio.sleep(3)

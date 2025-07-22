@@ -71,7 +71,8 @@ def main():
     )
 
     application.add_handler(start_conversation)
-    application.add_handler(calendar_conversation)
+    application.add_handler(calendar_conversation)\
+    # Добавить возможность удалить данные о себе / Поправить личную анкету
     application.run_polling()
 
 if __name__ == '__main__':
