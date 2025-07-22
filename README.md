@@ -17,7 +17,7 @@ git clone https://github.com/subpolare/life-calendar.git
 cd life-calendar
 ```
 
-Make sure that [Docker](https://www.docker.com/get-started) in installed and run the following step (if you want to see the logs, run with `-d`): 
+Make sure that [Docker](https://www.docker.com/get-started) is installed and run the following step (if you want to see the logs, run with `-d`): 
 
 ```bash
 docker compose up --build
