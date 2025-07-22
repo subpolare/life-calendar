@@ -134,6 +134,42 @@ async def set_event(user_id: int, event: str, dates: Any):
         await conn.execute('INSERT INTO users(id, data) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data;', user_id, json.dumps(enc))
     await pool.close()
 
+async def delete_event(user_id: int, event: str, dates: Any):
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        user_key = await get_or_create_user_key(user_id, conn)
+        row = await conn.fetchrow('SELECT data FROM users WHERE id = $1;', user_id)
+        if row and row['data']:
+            try:
+                stored_enc: dict[str, Any] = json.loads(row['data'])
+                decrypted: str = encryption.decrypt(stored_enc, user_key)
+                events: list[Any] = json.loads(decrypted)
+                if not isinstance(events, list):
+                    events = []
+            except Exception:
+                events = []
+        else:
+            events = []
+
+        def _to_iso_list(src: Any) -> list[str]:
+            if src is None:
+                return []
+            if isinstance(src, (list, tuple)):
+                return [d.isoformat() if hasattr(d, 'isoformat') else str(d) for d in src]
+            return [src.isoformat() if hasattr(src, 'isoformat') else str(src)]
+        target = _to_iso_list(dates)
+        events = [
+            item for item in events
+            if not (
+                list(item.keys())[0] == event and
+                _to_iso_list(list(item.values())[0]) == target
+            )
+        ]
+
+        enc = encryption.encrypt(json.dumps(events, default = _json_serializer, ensure_ascii = False).encode(), user_key)
+        await conn.execute('INSERT INTO users(id, data) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data;', user_id, json.dumps(enc))
+    await pool.close()
+
 async def get_user_data(user_id: int):
     pool = await get_database_pool()
     async with pool.acquire() as conn:

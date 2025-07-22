@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from utils.typing import _keep_typing
 from life_calendar import create_calendar
 import os, warnings, asyncio, re, datetime
-from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action
+from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event
 warnings.filterwarnings('ignore')
 load_dotenv()
 
@@ -22,21 +22,21 @@ MONTHS = {1: 'января', 2: 'февраля', 3: 'марта', 4: 'апре�
 def _fmt(d: date) -> str:
     return f'{d.day} {MONTHS[d.month]} {d.year}'
 
-def events2text(events: list[dict[str, Any]]) -> str:
-    def _first_date(item: dict[str, Any]) -> date:
-        _, dates = next(iter(item.items()))
-        first = dates if isinstance(dates, str) else dates[0]
-        return date.fromisoformat(first)
+def _first_date(item: dict[str, Any]) -> date:
+    _, dates = next(iter(item.items()))
+    first = dates if isinstance(dates, str) else dates[0]
+    return date.fromisoformat(first)
 
+def events2text(events: list[dict[str, Any]]) -> str:
     lines = []
-    for i, item in enumerate(sorted(events, key=_first_date)):
+    for i, item in enumerate(sorted(events, key = _first_date)):
         name, dates = next(iter(item.items()))
         if isinstance(dates, str):
             dates = [dates]
         dates = [date.fromisoformat(d) for d in dates]
 
         if len(dates) == 1:
-            lines.append(f'{name}: с {_fmt(dates[0])} года.')
+            lines.append(f'{i + 1}. {name}: с {_fmt(dates[0])} года.')
         else:
             start, end = sorted(dates)
             lines.append(f'{i + 1}. {name}: {_fmt(start)} – {_fmt(end)} года.')
@@ -54,7 +54,7 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     events = events2text(events)
     keyboard = [
             [InlineKeyboardButton('Добавить новое событие',     callback_data = 'add')],
-            [InlineKeyboardButton('Удалить что-то',             callback_data = 'remove')],
+            [InlineKeyboardButton('Хочу кое-что удалить',       callback_data = 'remove')],
             [InlineKeyboardButton('Поменять название или даты', callback_data = 'edit')],
             [InlineKeyboardButton('Нарисовать календарь',       callback_data = 'calendar')],
             [InlineKeyboardButton('Назад',                      callback_data = 'stop')],
@@ -82,7 +82,6 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gender = user_data['gender']
 
     events = await get_events(update.effective_user.id) 
-    names = [list(event.keys())[0] for event in events]
     await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
     await asyncio.sleep(3)
     
@@ -101,7 +100,7 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = (
-                f'**Что бы ты хотел{"а" if gender == "female" else ""} добавить на календарь?** Напиши в формате «Курю: с 1.09.2021» или «Занималась плаванием: с 2023 до 2025».\n\n'
+                f'*Что бы ты хотел{"а" if gender == "female" else ""} добавить на календарь? Напиши в формате «Курю: с 1.09.2021» или «Занималась плаванием: с 2023 до 2025».*\n\n'
                 f'Пиши даты в формате ДД.ММ.ГГГГ. Еще можешь написать возраст, например, «Плавание: с 4 до 22 лет» или «Курю: с 17 лет».\n\n'
                 f'_Главное, поставь двоеточие после названия, чтобы я не запуталась, а с остальным я разберусь._'
             ), 
@@ -109,16 +108,18 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return EVENT_NAME_TEXT
     else:
+        keyboard = []
+        for i, item in enumerate(sorted(events, key = _first_date)):
+            name, _ = next(iter(item.items()))
+            keyboard.append([InlineKeyboardButton(f'{i + 1}. {name}', callback_data = i)])
         if action == 'remove': 
-            keyboard = [InlineKeyboardButton(name, callback_data = i) for i, name in enumerate(names)] 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = f'Что ты хочешь удалить?', 
+                text         = f'Хорошо, что нужно удалить?', 
                 parse_mode   = 'Markdown', 
                 reply_markup = InlineKeyboardMarkup(keyboard)
             )
         elif action == 'edit': 
-            keyboard = [InlineKeyboardButton(name, callback_data = i) for i, name in enumerate(names)] 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
                 text         = f'Что ты хочешь поменять?', 
@@ -126,10 +127,9 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup = InlineKeyboardMarkup(keyboard)
             ) 
         elif action == 'calendar': 
-            keyboard = [InlineKeyboardButton(name, callback_data = i) for i, name in enumerate(names)] 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = f'Что что мне нанести на твой календарь?', 
+                text         = f'Что нарисовать на твоем календаре? Выбери нужный вариант', 
                 parse_mode   = 'Markdown', 
                 reply_markup = InlineKeyboardMarkup(keyboard)
             ) 
@@ -143,7 +143,6 @@ async def add_new_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_data = await get_user_data(update.effective_user.id)
     day, month, year = map(int, user_data['birth'].split('.'))
-    birth = date(year, month, day)
 
     try: 
         event_type, _ = answer.split(':')
@@ -189,7 +188,7 @@ async def add_new_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await typing_task
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = 'DateError. Не могу прочитать твой текст😔 Напиши событие, потом двоеточие и в конце либо даты в формате ДД.ММ.ГГГГ, либо возраст.\n\n_Например, «Плавание: с 16 до 23 лет» или «Дзюдо: с 25.11.2020»_', 
+                text         = 'Не могу прочитать твой текст😔 Напиши событие, потом двоеточие и в конце либо даты в формате ДД.ММ.ГГГГ, либо возраст.\n\n_Например, «Плавание: с 16 до 23 лет» или «Дзюдо: с 25.11.2020»_', 
                 parse_mode   = 'Markdown', 
             )
             return EVENT_NAME_TEXT
@@ -206,5 +205,27 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query 
     await query.answer()
-    answer = query.data
     action = await get_action(update.effective_user.id)
+    events = await get_events(update.effective_user.id) 
+
+    if action == 'remove': 
+        for i, item in enumerate(sorted(events, key = _first_date)):
+            event_type, event_dates = next(iter(item.items()))
+            if i + 1 == query.data: 
+                break
+        await delete_event(update.effective_user.id, event_type, event_dates)
+        await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
+
+        stop_event.set()
+        await typing_task
+        await context.bot.send_message(
+            chat_id      = update.effective_chat.id,
+            text         = 'Хорошо, удалила!', 
+            parse_mode   = 'Markdown', 
+        )
+        return await handle_calendar(update, context)
+    
+    elif action == 'edit': 
+        pass
+    elif action == 'calendar': 
+        pass
