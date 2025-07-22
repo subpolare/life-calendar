@@ -1,13 +1,12 @@
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 
+from datetime import date
 from dotenv import load_dotenv
-from datetime import date, timedelta
 from utils.typing import _keep_typing
 from life_calendar import create_calendar
-from dateutil.relativedelta import relativedelta
-from utils.dbtools import set_birth, set_name, set_gender, get_user_data, set_empty_event, get_empty_event
-import asyncio, random, os, secrets, re, warnings, datetime
+import asyncio, random, os, secrets, re, warnings
+from utils.dbtools import set_birth, set_name, set_gender, get_user_data, set_empty_event, get_events, set_event
 warnings.filterwarnings('ignore')
 load_dotenv()
 
@@ -15,18 +14,13 @@ DATABASE_URL       = os.getenv('DATABASE_URL')
 DATABASE_PORT      = os.getenv('DATABASE_PORT')
 DATABASE_USER      = os.getenv('DATABASE_USER')
 DATABASE_PASSWORD  = os.getenv('DATABASE_PASSWORD')
+COMMUNITY_URL      = os.getenv('COMMUNITY_URL')
 
 # ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
 ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE = range(6)
 
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
-    stop_event.set()
-    await typing_task
-    
     await context.bot.send_message(
         chat_id    = update.effective_chat.id,
         text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Когда у тебя День рождения?* Напиши в формате ДД.ММ.ГГГГ, например, 01.09.1990', 
@@ -93,21 +87,19 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if answer == 'yes': 
         stop_event.set()
         await typing_task
-        text = 'Тогда начнем со знакомства. <b>Как тебя зовут?</b> Напиши только имя.'
+        text = 'Тогда начнем со знакомства. Как тебя зовут?'
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
             text        = text, 
-            parse_mode  = 'HTML'
+            parse_mode  = 'Markdown'
         )
         return ASK_NAME
     else:
         stop_event.set()
         await typing_task
-
-        text = 'Буду ждать, пока ты вернешься! Нажми /start, если решишь создать новый календарь.' 
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
-            text        = text, 
+            text        = 'Буду ждать, пока ты вернешься! Нажми /start, если решишь создать новый календарь.' , 
             parse_mode  = 'Markdown'
         )
         return ConversationHandler.END
@@ -179,8 +171,7 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
             [InlineKeyboardButton('Школу + университет', callback_data = 'education')],
             [InlineKeyboardButton('Только школу', callback_data = 'school'), InlineKeyboardButton('Работу', callback_data = 'job')], 
-            [InlineKeyboardButton('Сколько я уже курю', callback_data = 'smoking')], 
-            [InlineKeyboardButton('Сколько длятся мои отношения', callback_data = 'alcohol')], 
+            [InlineKeyboardButton('Сколько я уже курю', callback_data = 'smoking')]
     ]
 
     stop_event.set()
@@ -209,9 +200,6 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message_id = query.message.message_id
     )
 
-    # Надо добавить в PostgreSQl, какой вопрос был задан, чтобы понять, на что был получен ответ. 
-    # В столбце data храним JSON вида {activity : (start, end)}. На этом этапе передаем {activity : None} в зашифрованном виде
-
     if answer == 'education': 
         text = f'Во сколько лет ты пош{"ла" if gender == "female" else "ел"} в школу и во сколько закончил{"а" if gender == "female" else ""} или закончишь учебу? Напиши одним сообщением в формате: «С 7 до 22 лет»'
         await set_empty_event(update.effective_user.id, 'Образование', first = True)
@@ -223,10 +211,6 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif answer == 'smoking': 
         text = f'Напиши возраст, в котором ты начал{"а" if gender == "female" else ""} курить. Например, напиши «В 16 лет».\n\nЕсли уже бросил{"а" if gender == "female" else ""}, то напиши, во сколько это было. Например, «С 16 до 23 лет».'
         await set_empty_event(update.effective_user.id, 'Курение', first = True)
-
-    elif answer == 'family': 
-        text = 'Когда у вас начались отношения? Напиши дату в формате ДД.ММ.ГГГГ, например, 19.01.2004.\n\nЕсли хочешь увидеть уже законченные отношения, напиши дату в формате «19.01.2004 - 27.02.2020».'
-        await set_empty_event(update.effective_user.id, 'Отношения', first = True)
 
     else: 
         text = 'С какого возраста ты работаешь? Ответь в формате «С 16 лет» или «С 16 до 49 лет»'
@@ -246,7 +230,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
     stop_event  = asyncio.Event()
     typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
 
-    events = await get_empty_event(update.effective_user.id)
+    events = await get_events(update.effective_user.id)
     event_type = next(iter(events[0]))
     answer = update.message.text 
 
@@ -263,9 +247,10 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
         except: 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»', 
+                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «В 7 лет, 11 классов»', 
                 parse_mode   = 'Markdown', 
             )
+            return ASK_DATE
     elif event_type == 'Образование': 
             try: 
                 start, end = list(map(int, re.findall(r'\d+', answer)))
@@ -278,6 +263,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
                     text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 7 до 22 лет»', 
                     parse_mode   = 'Markdown', 
                 ) 
+                return ASK_DATE
     else: 
         if event_type == 'Курение': 
             try: 
@@ -288,15 +274,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
                     text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»', 
                     parse_mode   = 'Markdown', 
                 )
-        elif event_type == 'Отношения': 
-            try: 
-                dates = [datetime.strptime(d, '%d.%m.%Y').date() for d in re.findall(r'\d{2}\.\d{2}\.\d{4}', answer)]
-            except: 
-                await context.bot.send_message(
-                    chat_id      = update.effective_chat.id,
-                    text         = 'Не могу прочитать твой текст😔 Напиши даты еще раз, в формате «19.01.2004» или «19.01.2004 - 27.02.2020»', 
-                    parse_mode   = 'Markdown', 
-                )
+                return ASK_DATE
         else: 
             try: 
                 dates = list(map(int, re.findall(r'\d+', answer)))
@@ -306,6 +284,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
                     text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 49 лет»', 
                     parse_mode   = 'Markdown', 
                 )
+                return ASK_DATE
         if len(dates) == 1: 
             event = date(year + dates[0] + ((month, day) > (8, 31)), 1, 1)
         else: 
@@ -313,6 +292,8 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
             start = date(year + start + ((month, day) > (8, 31)), 1, 7)
             end   = date(year + end + ((month, day) > (8, 31)), 12, 31)
             event = (start, end)
+
+    await set_event(update.effective_user.id, event_type, event)
     
     filename = f'tmp/{secrets.token_hex(8)}.png'
     female = user_data['gender'] == 'female'
@@ -324,8 +305,29 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
         await context.bot.send_document(
             chat_id    = update.effective_chat.id,
             document   = photo,
-            caption    = f'Нанесла даты на календарь — смотри, как это выглядит в масштабах твоей жизни.', 
+            caption    = f'Нанесла даты на календарь — смотри, как это выглядит в масштабах твоей жизни. ', 
             parse_mode = 'Markdown'
         )
+    await asyncio.sleep(3)
+
+    await context.bot.send_message(
+        chat_id      = update.effective_chat.id,
+        text         = (
+            'Чтобы ты мог разблокировать новые клеточки в нем, каждый день я буду присылать тебе полезные советы по продлению жизни.\n\n' 
+            'Я собираю их из статей научного журнала [nature](https://www.nature.com/) и разных журналов nature reviews. Это топовые научные журналы, '
+            'каждая статья в которых проверяется учеными со всего мира.'
+        ),
+        parse_mode   = 'Markdown', 
+    )
+        
+    await asyncio.sleep(3)
+
+    stop_event.set()
+    await typing_task
+    await context.bot.send_message(
+        chat_id      = update.effective_chat.id,
+        text         = 'Теперь ты можешь создавать свои собственные календари с любыми событиями из жизни. Для этого нажми на /calendar', 
+        parse_mode   = 'Markdown', 
+    )
     
     return ConversationHandler.END 

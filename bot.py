@@ -1,7 +1,9 @@
-from handlers.handle_calendar import handle_calendar
+from handlers.handle_calendar import ACTION_TYPE, EVENT_NAME_POLL, EVENT_NAME_TEXT
+from handlers.handle_calendar import handle_calendar, user_action, add_new_event, action
 from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE
 from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar
 
+import telegram 
 from telegram import Update
 from telegram.request import HTTPXRequest
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes, ConversationHandler, CallbackQueryHandler
@@ -27,8 +29,13 @@ async def cancel(update: Update, context: ContextTypes. DEFAULT_TYPE):
     await update.message.reply_text('Хорошо, если передумаешь — я всегда тут')
     return ConversationHandler.END
 
+def error_handler(update, context):
+    if isinstance(context.error, telegram.error.Forbidden):
+        return
+
 def main():
     app = ApplicationBuilder().token(LIFE_BOT_TOKEN).request(request).build()
+    app.add_error_handler(error_handler)
     print('✅ The bot has successfully launched and is working while you are drinking tea.')
 
     start_conversation = ConversationHandler(
@@ -47,7 +54,9 @@ def main():
     calendar_conversation = ConversationHandler(
         entry_points = [CommandHandler('calendar', handle_calendar)],
         states = {
-            # STATES
+            ACTION_TYPE     : [CallbackQueryHandler(user_action)],
+            EVENT_NAME_POLL : [CallbackQueryHandler(action)],
+            EVENT_NAME_TEXT : [MessageHandler(filters.TEXT & ~filters.COMMAND, add_new_event)],
         },
         fallbacks = [CommandHandler('cancel', cancel)]
     )
