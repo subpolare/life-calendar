@@ -62,11 +62,11 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await clear_action(update.effective_user.id) 
     events = events2text(events)
     keyboard = [
-            [InlineKeyboardButton('Добавить новое событие',     callback_data = 'add')],
-            [InlineKeyboardButton('Хочу кое-что удалить',       callback_data = 'remove')],
-            [InlineKeyboardButton('Поменять название или даты', callback_data = 'edit')],
-            [InlineKeyboardButton('Нарисовать календарь',       callback_data = 'calendar')],
-            [InlineKeyboardButton('Ничего не хочу',             callback_data = 'stop')],
+            [InlineKeyboardButton('Добавить новое событие', callback_data = 'add')],
+            [InlineKeyboardButton('Хочу кое-что удалить',   callback_data = 'remove')],
+            [InlineKeyboardButton('Давай кое-что поменяем', callback_data = 'edit')],
+            [InlineKeyboardButton('Риусем календарь!',      callback_data = 'calendar')],
+            [InlineKeyboardButton('Ничего не хочу',         callback_data = 'stop')],
     ]
     stop_event.set()
     await typing_task
@@ -109,7 +109,7 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = (
-                f'*Что бы ты хотел{"а" if gender == "female" else ""} добавить на календарь? Напиши в формате «Курю: с 1.09.2021» или «Занималась плаванием: с 2023 до 2025».*\n\n'
+                f'*Что бы ты хотел{"а" if gender == "female" else ""} добавить на календарь?* Напиши в формате «Курю: с 1.09.2021» или «Занималась плаванием: с 2023 до 2025».\n\n'
                 f'Пиши даты в формате ДД.ММ.ГГГГ. Еще можешь написать возраст, например, «Плавание: с 4 до 22 лет» или «Курю: с 17 лет».\n\n'
                 f'_Главное, поставь двоеточие после названия, чтобы я не запуталась, а с остальным я разберусь._'
             ), 
@@ -131,11 +131,12 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif action == 'edit': 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = f'Что ты хочешь поменять?', 
+                text         = f'Какое событие хочешь отредактировать?', 
                 parse_mode   = 'Markdown', 
                 reply_markup = InlineKeyboardMarkup(keyboard)
             ) 
         elif action == 'calendar': 
+            keyboard.append([InlineKeyboardButton(f'Просто календарь, без всего', callback_data = 'empty')])
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
                 text         = f'Что нарисовать на твоем календаре? Выбери нужный вариант', 
@@ -219,8 +220,9 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query 
     await query.answer()
-    event_type, event_dates = query.data.split('&|$|&')
-    event_dates = json.loads(event_dates)
+    if query.data != 'empty':
+        event_type, event_dates = query.data.split('&|$|&')
+        event_dates = json.loads(event_dates)
     action = await get_action(update.effective_user.id)
 
     if action == 'remove': 
@@ -235,7 +237,21 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await handle_calendar(update, context)
     
     elif action == 'edit': 
-        pass
+        await delete_event(update.effective_user.id, event_type, event_dates)
+        name = event_type[0].lower() + event_type[1:] if event_type else event_type
+
+        stop_event.set()
+        await typing_task
+        await context.bot.send_message(
+            chat_id    = update.effective_chat.id,
+            text       = (
+                f'*Напиши про {name} с новым названием или датой в таком формате:* «Курю: с 1.09.2021» или «Занималась плаванием: с 2023 до 2025».\n\n'
+                f'Пиши даты в формате ДД.ММ.ГГГГ. Еще можешь написать возраст, например, «Плавание: с 4 до 22 лет» или «Курю: с 17 лет».\n\n'
+                f'_Главное, поставь двоеточие после названия, чтобы я не запуталась, а с остальным я разберусь._'
+            ), 
+            parse_mode = 'Markdown'
+        )
+        return EVENT_NAME_TEXT
     
     elif action == 'calendar': 
         user_data = await get_user_data(update.effective_user.id)
@@ -244,24 +260,32 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         birth = date(year, month, day)
         female = user_data['gender'] == 'female'
         filename = f'tmp/{secrets.token_hex(8)}.png'
-        create_calendar(birth, fname = filename, female = female, event = _to_event(event_dates), label = event_type)
+        
+        create_calendar(
+            birth, fname = filename, female = female, 
+            event = _to_event(event_dates) if query.data != 'empty' else None, 
+            label = event_type if query.data != 'empty' else None 
+        )
 
         stop_event.set()
         await typing_task
         with open(filename, 'rb') as photo:
-            phrases = [
-                'Отметила даты в календаре — посмотри, как это смотрится в контексте всей твоей жизни. Захочешь еще один — пиши /calendar',
-                'Проставила события на календаре — смотри, как выглядит общая картина. Для нового календаря нажми /calendar',
-                'Внесла даты в календарь — оцени масштаб в рамках всего твоего жизненного пути. Нужен еще один календарь — пиши /calendar',
-                'Взгляни на это в перспективе всей жизни. Хочешь создать новый календарь — нажми /calendar',
-                'Зафиксировала даты на календаре. Для следующего пиши /calendar',
-                'Оцени это в масштабе всего твоего существования. Нужен новый календарь — пиши /calendar',
-                'Получилась целая временная панорама твоей жизни! Для создания нового календаря пиши /calendar',
-                'Вот, как это выглядит в твоем жизненном контексте. Захочешь еще один календарь — пиши /calendar',
-                'Внесла это в календарь — взгляни на масштабы своего пути. Хочешь сделать еще один календарь? Пиши /calendar',
-                'Смотри, как это выглядит в рамках всей твоей жизни. Для нового календаря — пиши /calendar'
-            ]
-            message = random.choice(phrases)
+            if query.data != 'empty': 
+                phrases = [
+                    'Отметила даты в календаре — посмотри, как это смотрится в контексте всей твоей жизни. Захочешь еще один — пиши /calendar',
+                    'Проставила события на календаре — смотри, как выглядит общая картина. Для нового календаря нажми /calendar',
+                    'Внесла даты в календарь — оцени масштаб в рамках всего твоего жизненного пути. Нужен еще один календарь — пиши /calendar',
+                    'Взгляни на это в перспективе всей жизни. Хочешь создать новый календарь — нажми /calendar',
+                    'Зафиксировала даты на календаре. Для следующего пиши /calendar',
+                    'Оцени это в масштабе всего твоего существования. Нужен новый календарь — пиши /calendar',
+                    'Получилась целая временная панорама твоей жизни! Для создания нового календаря пиши /calendar',
+                    'Вот, как это выглядит в твоем жизненном контексте. Захочешь еще один календарь — пиши /calendar',
+                    'Внесла это в календарь — взгляни на масштабы своего пути. Хочешь сделать еще один календарь? Пиши /calendar',
+                    'Смотри, как это выглядит в рамках всей твоей жизни. Для нового календаря — пиши /calendar'
+                ]
+                message = random.choice(phrases)
+            else: 
+                message = 'Готово, нарисовала твой новый календарь'
             await context.bot.send_document(
                 chat_id    = update.effective_chat.id,
                 document   = photo,
@@ -270,6 +294,3 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             os.remove(filename)
         return ConversationHandler.END
-
-
-
