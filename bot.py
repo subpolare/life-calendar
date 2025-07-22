@@ -1,7 +1,8 @@
 from handlers.handle_calendar import ACTION_TYPE, EVENT_NAME_POLL, EVENT_NAME_TEXT
 from handlers.handle_calendar import handle_calendar, user_action, add_new_event, action
-from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE
-from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar
+from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, DELETE_DATA
+from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar, clean_data
+from utils.dbtools import init_pool, close_pool
 
 import telegram 
 from telegram import Update
@@ -34,14 +35,22 @@ def error_handler(update, context):
         return
 
 def main():
-    app = ApplicationBuilder().token(LIFE_BOT_TOKEN).request(request).build()
-    app.add_error_handler(error_handler)
+    application = (
+        ApplicationBuilder()
+        .token(LIFE_BOT_TOKEN)
+        .post_init(lambda app: init_pool())
+        .post_shutdown(lambda app: close_pool())
+        .request(request)
+        .build()
+    )
+    application.add_error_handler(error_handler)
     print('✅ The bot has successfully launched and is working while you are drinking tea.')
 
     start_conversation = ConversationHandler(
         entry_points = [CommandHandler('start', handle_start)],
         states = {
             ASK_BIRTHDAY : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
+            DELETE_DATA  : [CallbackQueryHandler(clean_data)],
             ASK          : [CallbackQueryHandler(ask_name)],
             ASK_NAME     : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
             ASK_GENDER   : [CallbackQueryHandler(ask_type)],
@@ -61,9 +70,9 @@ def main():
         fallbacks = [CommandHandler('cancel', cancel)]
     )
 
-    app.add_handler(start_conversation)
-    app.add_handler(calendar_conversation)
-    app.run_polling()
+    application.add_handler(start_conversation)
+    application.add_handler(calendar_conversation)
+    application.run_polling()
 
 if __name__ == '__main__':
     main()

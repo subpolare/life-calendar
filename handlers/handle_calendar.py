@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from utils.typing import _keep_typing
 from life_calendar import create_calendar
 import os, warnings, asyncio, re, secrets, random, json
-from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event
+from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event, user_exists
 warnings.filterwarnings('ignore')
 load_dotenv()
 
@@ -57,6 +57,14 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event  = asyncio.Event()
     typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
     await asyncio.sleep(3)
+    exist = await user_exists(update.effective_user.id) 
+    if not exist: 
+        await context.bot.send_message(
+            chat_id     = update.effective_chat.id,
+            text        = f'Чтобы использовать эту команду, нужно зарегестрироваться. Для этого нажми на /start', 
+            parse_mode  = 'Markdown'
+        )
+        return ConversationHandler.END
 
     events = await get_events(update.effective_user.id) 
     await clear_action(update.effective_user.id) 
@@ -87,10 +95,10 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     action = query.data
     await set_action(update.effective_user.id, action)
 
-    user_data = await get_user_data(update.effective_user.id) 
+    user_data = await get_user_data(update.effective_user.id)
     gender = user_data['gender']
 
-    events = await get_events(update.effective_user.id) 
+    events = await get_events(update.effective_user.id)
     await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
     await asyncio.sleep(3)
     

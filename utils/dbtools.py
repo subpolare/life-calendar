@@ -9,9 +9,26 @@ DATABASE_URL       = os.getenv('DATABASE_URL')
 DATABASE_PORT      = os.getenv('DATABASE_PORT')
 DATABASE_USER      = os.getenv('DATABASE_USER')
 DATABASE_PASSWORD  = os.getenv('DATABASE_PASSWORD')
+_pool: asyncpg.Pool | None = None
+
+async def init_pool(min_size: int = 5, max_size: int = 20):
+    global _pool
+    if _pool is None:
+        _pool = await asyncpg.create_pool(
+            DATABASE_URL,
+            min_size        = min_size,
+            max_size        = max_size,
+            command_timeout = 30,
+        )
+
+async def close_pool():
+    if _pool:
+        await _pool.close()
 
 async def get_database_pool():
-    return await asyncpg.create_pool(DATABASE_URL)
+    if _pool is None:
+        await init_pool()
+    return _pool
 
 def _json_serializer(obj: Any) -> Any:
     if isinstance(obj, (date, datetime)):
@@ -41,23 +58,20 @@ async def set_birth(user_id: int, birth: str):
             INSERT INTO users(id, birth) VALUES($1, $2)
             ON CONFLICT (id) DO UPDATE SET birth = EXCLUDED.birth;
         ''', user_id, json.dumps(enc))
-    await pool.close()
-
+    
 async def set_name(user_id: int, name: str):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         user_key = await get_or_create_user_key(user_id, conn)
         enc = encryption.encrypt(name.encode(), user_key)
         await conn.execute('UPDATE users SET name = $2 WHERE id = $1;', user_id, json.dumps(enc))
-    await pool.close()
-
+    
 async def set_gender(user_id: int, gender: str):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         user_key = await get_or_create_user_key(user_id, conn)
         enc = encryption.encrypt(gender.encode(), user_key)
         await conn.execute('UPDATE users SET gender = $2 WHERE id = $1;', user_id, json.dumps(enc))
-    await pool.close()
 
 async def set_empty_event(user_id: int, event: str, first = False):
     pool = await get_database_pool()
@@ -132,8 +146,7 @@ async def set_event(user_id: int, event: str, dates: Any):
 
         enc = encryption.encrypt(json.dumps(events, default = _json_serializer, ensure_ascii = False).encode(), user_key)
         await conn.execute('INSERT INTO users(id, data) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data;', user_id, json.dumps(enc))
-    await pool.close()
-
+    
 async def delete_event(user_id: int, event: str, dates: Any):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
@@ -168,7 +181,6 @@ async def delete_event(user_id: int, event: str, dates: Any):
 
         enc = encryption.encrypt(json.dumps(events, default = _json_serializer, ensure_ascii = False).encode(), user_key)
         await conn.execute('INSERT INTO users(id, data) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data;', user_id, json.dumps(enc))
-    await pool.close()
 
 async def get_user_data(user_id: int):
     pool = await get_database_pool()
@@ -187,14 +199,12 @@ async def set_action(user_id: int, gender: str):
         user_key = await get_or_create_user_key(user_id, conn)
         enc = encryption.encrypt(gender.encode(), user_key)
         await conn.execute('UPDATE users SET action = $2 WHERE id = $1;', user_id, json.dumps(enc))
-    await pool.close()
-
+    
 async def clear_action(user_id: int):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         await conn.execute('UPDATE users SET action = NULL WHERE id = $1;', user_id)
-    await pool.close()
-
+    
 async def get_action(user_id: int):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
@@ -202,4 +212,20 @@ async def get_action(user_id: int):
         user_key = encryption.decrypt_key(json.loads(row['key']))
         action = encryption.decrypt(json.loads(row['action']), user_key).decode()
         return action
-    await pool.close()
+    
+async def user_exists(user_id: int):
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow('SELECT name, birth, gender FROM users WHERE id = $1;', user_id)
+        if not row:
+            
+            return False
+        filled = all(row[col] for col in ('name', 'birth', 'gender'))
+    
+    return filled
+
+async def delete_data(user_id: int):
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        await conn.execute('UPDATE users SET name = NULL, birth = NULL, gender = NULL, data = NULL WHERE id = $1;', user_id)
+    

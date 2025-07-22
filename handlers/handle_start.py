@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from utils.typing import _keep_typing
 from life_calendar import create_calendar
 import asyncio, random, os, secrets, re, warnings
-from utils.dbtools import set_birth, set_name, set_gender, get_user_data, set_empty_event, get_events, set_event
+from utils.dbtools import set_birth, set_name, set_gender, get_user_data, set_empty_event, get_events, set_event, user_exists, delete_data
 warnings.filterwarnings('ignore')
 load_dotenv()
 
@@ -18,15 +18,54 @@ COMMUNITY_URL      = os.getenv('COMMUNITY_URL')
 
 # ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
-ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE = range(6)
+ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, DELETE_DATA = range(7)
 
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(
-        chat_id    = update.effective_chat.id,
-        text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Когда у тебя День рождения?* Напиши в формате ДД.ММ.ГГГГ, например, 01.09.1990', 
-        parse_mode = f'Markdown'
-    )
-    return ASK_BIRTHDAY
+    exist = await user_exists(update.effective_user.id) 
+    if exist: 
+        user_data = await get_user_data(update.effective_user.id) 
+        gender = user_data['gender']
+
+        keyboard = [
+            [InlineKeyboardButton(f'Да, все удаляем!', callback_data = 'yes')],
+            [InlineKeyboardButton(f'Нет, я случайно сюда нажал{"а" if gender == "female" else ""}', callback_data = 'no')]
+        ]
+        await context.bot.send_message(
+            chat_id      = update.effective_chat.id,
+            text         = f'Уверен{"а" if gender == "female" else ""}, что хочешь начать регистрацию сначала? Если да, я удалю все, что знаю о тебе, и ты внесешь все данные заново.', 
+            parse_mode   = f'Markdown', 
+            reply_markup = InlineKeyboardMarkup(keyboard)
+        )
+        return DELETE_DATA 
+    else: 
+        await context.bot.send_message(
+            chat_id    = update.effective_chat.id,
+            text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Когда у тебя День рождения?* Напиши в формате ДД.ММ.ГГГГ, например, 01.09.1990', 
+            parse_mode = f'Markdown'
+        )
+        return ASK_BIRTHDAY
+    
+async def clean_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query 
+    await query.answer()
+    answer = query.data
+
+    if answer == 'yes':
+        stop_event  = asyncio.Event()
+        typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
+        await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
+        await delete_data(update.effective_user.id)
+        stop_event.set()
+        await typing_task
+        return await handle_start(update, context)
+    else: 
+        await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
+        await context.bot.send_message(
+            chat_id    = update.effective_chat.id,
+            text       = f'Фух, а то я испугалась...',
+            parse_mode = 'Markdown'
+        )
+        return ConversationHandler.END
 
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stop_event  = asyncio.Event()
@@ -79,8 +118,8 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = query.data
 
     await context.bot.delete_message(
-        chat_id =query.message.chat.id,
-        message_id =query.message.message_id
+        chat_id = query.message.chat.id,
+        message_id = query.message.message_id
     )
 
     await asyncio.sleep(random.uniform(1, 3))
