@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from utils.typing import _keep_typing
 from life_calendar import create_calendar
 import asyncio, random, os, secrets, re, warnings
+from utils.dateparser import parse_dates
 from utils.dbtools import set_birth, set_name, set_gender, get_user_data, set_empty_event, get_events, set_event, user_exists, delete_data
 warnings.filterwarnings('ignore')
 load_dotenv()
@@ -310,34 +311,20 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
                     parse_mode   = 'Markdown', 
                 ) 
                 return ASK_DATE
-    else: 
-        if event_type == 'Курение': 
-            try: 
-                dates = list(map(int, re.findall(r'\d+', answer)))
-            except: 
-                await context.bot.send_message(
-                    chat_id      = update.effective_chat.id,
-                    text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»', 
-                    parse_mode   = 'Markdown', 
-                )
-                return ASK_DATE
-        else: 
-            try: 
-                dates = list(map(int, re.findall(r'\d+', answer)))
-            except: 
-                await context.bot.send_message(
-                    chat_id      = update.effective_chat.id,
-                    text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 49 лет»', 
-                    parse_mode   = 'Markdown', 
-                )
-                return ASK_DATE
-        if len(dates) == 1: 
-            event = date(year + dates[0] + ((month, day) > (8, 31)), 1, 1)
-        else: 
-            start, end = sorted(dates)
-            start = date(year + start + ((month, day) > (8, 31)), 1, 7)
-            end   = date(year + end + ((month, day) > (8, 31)), 12, 31)
-            event = (start, end)
+    else:
+        try:
+            event = parse_dates(answer, date(year, month, day))
+        except ValueError:
+            if event_type == 'Курение':
+                text_error = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»'
+            else:
+                text_error = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 49 лет»'
+            await context.bot.send_message(
+                chat_id      = update.effective_chat.id,
+                text         = text_error,
+                parse_mode   = 'Markdown',
+            )
+            return ASK_DATE
 
     await set_event(update.effective_user.id, event_type, event)
     
