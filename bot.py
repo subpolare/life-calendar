@@ -1,7 +1,7 @@
 from handlers.handle_calendar import ACTION_TYPE, EVENT_NAME_POLL, EVENT_NAME_TEXT
 from handlers.handle_calendar import handle_calendar, user_action, add_new_event, action
-from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, DELETE_DATA
-from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar, clean_data
+from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, DELETE_DATA
+from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar, clean_data, ask_more
 from utils.dbtools import init_pool, close_pool
 
 import telegram 
@@ -57,6 +57,7 @@ def main():
             ASK_GENDER   : [CallbackQueryHandler(ask_type)],
             ASK_TYPE     : [CallbackQueryHandler(ask_dates)],
             ASK_DATE     : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
+            ASK_MORE     : [CallbackQueryHandler(ask_more)],
         },
         fallbacks = [CommandHandler('cancel', cancel)]
     )
