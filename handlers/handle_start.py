@@ -7,7 +7,7 @@ from utils.typing import _keep_typing
 from life_calendar import create_calendar
 import asyncio, random, os, secrets, re, warnings
 from utils.dateparser import parse_dates
-from utils.dbtools import set_birth, set_name, set_gender, get_user_data, set_empty_event, get_events, set_event, user_exists, delete_data
+from utils.dbtools import set_birth, set_name, set_gender, get_user_data, set_empty_event, set_event, user_exists, delete_data
 warnings.filterwarnings('ignore')
 load_dotenv()
 
@@ -231,6 +231,8 @@ async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append(row2)
     if 'smoking' not in added:
         keyboard.append([InlineKeyboardButton('Сколько я уже курю', callback_data = 'smoking')])
+    if added:
+        keyboard.append([InlineKeyboardButton('Давай закончим', callback_data = 'finish')])
 
     stop_event.set()
     await typing_task
@@ -252,6 +254,9 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query 
     await query.answer()
     answer = query.data
+    if answer == 'finish':
+        await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
+        return await finish_start(update, context)
     user_data = await get_user_data(update.effective_user.id)
     gender = user_data.get('gender')
     if not gender:
@@ -299,9 +304,15 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
     stop_event  = asyncio.Event()
     typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
 
-    events = await get_events(update.effective_user.id)
-    event_type = next(iter(events[0]))
-    answer = update.message.text 
+    event_key = context.user_data.get('event_type')
+    key_map = {
+        'education': 'Образование',
+        'school': 'Школа',
+        'smoking': 'Курение',
+        'job': 'Работа'
+    }
+    event_type = key_map.get(event_key)
+    answer = update.message.text
 
     user_data = await get_user_data(update.effective_user.id)
     day, month, year = map(int, user_data['birth'].split('.'))
