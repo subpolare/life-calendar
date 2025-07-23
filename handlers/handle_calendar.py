@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from utils.typing import _keep_typing
 from life_calendar import create_calendar
 import os, warnings, asyncio, re, secrets, random, json
+from utils.dateparser import parse_dates
 from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event, user_exists
 warnings.filterwarnings('ignore')
 load_dotenv()
@@ -175,41 +176,16 @@ async def add_new_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return EVENT_NAME_TEXT
 
     try:
-        dates = list(map(int, re.findall(r'\d+', answer)))
-        if len(dates) == 1: 
-            event = date(year + dates[0] + ((month, day) > (8, 31)), 1, 1)
-        elif len(dates) == 2: 
-            start, end = sorted(dates)
-            start = date(year + start + ((month, day) > (8, 31)), 1, 7)
-            end   = date(year + end + ((month, day) > (8, 31)), 12, 31)
-            event = (start, end)
-        else: 
-            raise ValueError(f'Expected 1 or 2 numbers')
-    except: 
-        try:
-            dates = []
-            for day, month, year in re.findall(r'\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b', answer):
-                y = int(year)
-                if y < 100:
-                    y += 2000 if y < 50 else 1900
-                try:
-                    dates.append(date(y, int(month), int(day)))
-                except ValueError:
-                    continue 
-            if not dates:
-                raise ValueError('Не найдено ни одной даты')
-            if len(dates) > 2:
-                raise ValueError('Ожидалось не больше двух дат')
-            event = tuple(dates) if len(dates) == 2 else dates[0]
-        except: 
-            stop_event.set()
-            await typing_task
-            await context.bot.send_message(
-                chat_id      = update.effective_chat.id,
-                text         = 'Не могу прочитать твой текст😔 Напиши событие, потом двоеточие и в конце либо даты в формате ДД.ММ.ГГГГ, либо возраст.\n\n_Например, «Плавание: с 16 до 23 лет» или «Дзюдо: с 25.11.2020»_', 
-                parse_mode   = 'Markdown', 
-            )
-            return EVENT_NAME_TEXT
+        event = parse_dates(answer, date(year, month, day))
+    except ValueError:
+        stop_event.set()
+        await typing_task
+        await context.bot.send_message(
+            chat_id      = update.effective_chat.id,
+            text         = 'Не могу прочитать твой текст😔 Напиши событие, потом двоеточие и в конце либо даты в формате ДД.ММ.ГГГГ, либо возраст.\n\n_Например, «Плавание: с 16 до 23 лет» или «Дзюдо: с 25.11.2020»_',
+            parse_mode   = 'Markdown',
+        )
+        return EVENT_NAME_TEXT
             
     await set_event(update.effective_user.id, event_type, event)
     stop_event.set()
