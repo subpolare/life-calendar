@@ -1,13 +1,14 @@
-import asyncio 
+import asyncio
 from telegram.constants import ChatAction
+from telegram.helpers import ChatActionSender
 
 async def _keep_typing(chat_id: int, bot, stop_event: asyncio.Event):
     try:
-        while not stop_event.is_set():
-            await bot.send_chat_action(chat_id = chat_id, action = ChatAction.TYPING)
-            try:
-                await asyncio.wait_for(stop_event.wait(), timeout = 4.5)
-            except asyncio.TimeoutError:
-                pass
+        async with ChatActionSender(
+            action = ChatAction.TYPING,
+            chat_id = chat_id,
+            bot     = bot
+        ):
+            await stop_event.wait()
     except asyncio.CancelledError:
         pass
