@@ -7,7 +7,7 @@ from datetime import date
 from dotenv import load_dotenv
 from utils.typing import _keep_typing
 from life_calendar import create_calendar
-import os, warnings, asyncio, re, secrets, random, json
+import os, warnings, asyncio, re, secrets, random
 from utils.dateparser import parse_dates
 from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event, user_exists
 warnings.filterwarnings('ignore')
@@ -128,8 +128,8 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         keyboard = []
         for i, item in enumerate(sorted(events, key = _first_date)):
-            name, dates = next(iter(item.items()))
-            keyboard.append([InlineKeyboardButton(f'{i + 1}. {name}', callback_data = '&|$|&'.join([name, json.dumps(dates)]))])
+            name, _ = next(iter(item.items()))
+            keyboard.append([InlineKeyboardButton(f'{i + 1}. {name}', callback_data = str(i))])
         if action == 'remove': 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
@@ -202,12 +202,15 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
     await asyncio.sleep(3)
 
-    query = update.callback_query 
+    query = update.callback_query
     await query.answer()
-    if query.data != 'empty':
-        event_type, event_dates = query.data.split('&|$|&')
-        event_dates = json.loads(event_dates)
     action = await get_action(update.effective_user.id)
+    if query.data != 'empty':
+        index = int(query.data)
+        events = await get_events(update.effective_user.id)
+        events_sorted = sorted(events, key = _first_date)
+        item = events_sorted[index]
+        event_type, event_dates = next(iter(item.items()))
 
     if action == 'remove': 
         await delete_event(update.effective_user.id, event_type, event_dates)
