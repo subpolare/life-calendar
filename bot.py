@@ -65,7 +65,8 @@ def main():
             ASK_DATE     : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
             ASK_MORE     : [CallbackQueryHandler(ask_more)],
         },
-        fallbacks = [CommandHandler('cancel', cancel)]
+        fallbacks = [CommandHandler('cancel', cancel)],
+        allow_reentry = True
     )
 
     calendar_conversation = ConversationHandler(
@@ -75,7 +76,8 @@ def main():
             EVENT_NAME_POLL : [CallbackQueryHandler(action)],
             EVENT_NAME_TEXT : [MessageHandler(filters.TEXT & ~filters.COMMAND, add_new_event)],
         },
-        fallbacks = [CommandHandler('cancel', cancel)]
+        fallbacks = [CommandHandler('cancel', cancel)],
+        allow_reentry = True
     )
 
     me_conversation = ConversationHandler(
@@ -86,7 +88,8 @@ def main():
             ME_BIRTHDAY  : [MessageHandler(filters.TEXT & ~filters.COMMAND, change_birthday)],
             ME_GENDER    : [CallbackQueryHandler(change_gender)],
         },
-        fallbacks = [CommandHandler('cancel', cancel)]
+        fallbacks = [CommandHandler('cancel', cancel)],
+        allow_reentry = True
     )
 
     oblivion_conversation = ConversationHandler(
@@ -94,7 +97,8 @@ def main():
         states = {
             DELETE_ACCOUNT : [CallbackQueryHandler(oblivion_answer)],
         },
-        fallbacks = [CommandHandler('cancel', cancel)]
+        fallbacks = [CommandHandler('cancel', cancel)],
+        allow_reentry = True
     )
 
     application.add_handler(start_conversation)
