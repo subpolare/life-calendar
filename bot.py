@@ -4,6 +4,10 @@ from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_T
 from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar, clean_data, ask_more
 from handlers.handle_oblivion import DELETE_ACCOUNT, handle_oblivion, oblivion_answer
 from handlers.handle_help import handle_help
+from handlers.handle_me import (
+    ME_ACTION, ME_NAME, ME_BIRTHDAY, ME_GENDER,
+    handle_me, me_option, change_name, change_birthday, change_gender,
+)
 from utils.dbtools import init_pool, close_pool
 
 import telegram 
@@ -74,6 +78,17 @@ def main():
         fallbacks = [CommandHandler('cancel', cancel)]
     )
 
+    me_conversation = ConversationHandler(
+        entry_points = [CommandHandler('me', handle_me)],
+        states = {
+            ME_ACTION    : [CallbackQueryHandler(me_option)],
+            ME_NAME      : [MessageHandler(filters.TEXT & ~filters.COMMAND, change_name)],
+            ME_BIRTHDAY  : [MessageHandler(filters.TEXT & ~filters.COMMAND, change_birthday)],
+            ME_GENDER    : [CallbackQueryHandler(change_gender)],
+        },
+        fallbacks = [CommandHandler('cancel', cancel)]
+    )
+
     oblivion_conversation = ConversationHandler(
         entry_points = [CommandHandler('oblivion', handle_oblivion)],
         states = {
@@ -84,9 +99,10 @@ def main():
 
     application.add_handler(start_conversation)
     application.add_handler(calendar_conversation)
+    application.add_handler(me_conversation)
     application.add_handler(oblivion_conversation)
     application.add_handler(CommandHandler('help', handle_help))
-    # Добавить возможность удалить данные о себе / Поправить личную анкету
+    # Изменить свои данные можно командой /me
     application.run_polling()
 
 if __name__ == '__main__':
