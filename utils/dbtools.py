@@ -236,4 +236,9 @@ async def delete_data(user_id: int):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         await conn.execute('UPDATE users SET name = NULL, birth = NULL, gender = NULL, data = NULL WHERE id = $1;', user_id)
+
+async def delete_user(user_id: int):
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        await conn.execute('DELETE FROM users WHERE id = $1;', user_id)
     
