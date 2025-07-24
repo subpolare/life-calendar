@@ -2,6 +2,8 @@ from handlers.handle_calendar import ACTION_TYPE, EVENT_NAME_POLL, EVENT_NAME_TE
 from handlers.handle_calendar import handle_calendar, user_action, add_new_event, action
 from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, DELETE_DATA
 from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar, clean_data, ask_more
+from handlers.handle_oblivion import DELETE_ACCOUNT, handle_oblivion, oblivion_answer
+from handlers.handle_help import handle_help
 from utils.dbtools import init_pool, close_pool
 
 import telegram 
@@ -72,8 +74,18 @@ def main():
         fallbacks = [CommandHandler('cancel', cancel)]
     )
 
+    oblivion_conversation = ConversationHandler(
+        entry_points = [CommandHandler('oblivion', handle_oblivion)],
+        states = {
+            DELETE_ACCOUNT : [CallbackQueryHandler(oblivion_answer)],
+        },
+        fallbacks = [CommandHandler('cancel', cancel)]
+    )
+
     application.add_handler(start_conversation)
-    application.add_handler(calendar_conversation)\
+    application.add_handler(calendar_conversation)
+    application.add_handler(oblivion_conversation)
+    application.add_handler(CommandHandler('help', handle_help))
     # Добавить возможность удалить данные о себе / Поправить личную анкету
     application.run_polling()
 
