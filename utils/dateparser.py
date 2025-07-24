@@ -39,6 +39,7 @@ _MONTH_TEXT_DATE_RE = re.compile(
     r'(?:\b(\d{1,2})\s+)?(' + '|'.join(re.escape(m) for m in sorted(_MONTH_WORDS, key = len, reverse = True)) + r')\s+(\d{2,4})',
     re.IGNORECASE
 )
+_YEAR_RE = re.compile(r'\b(\d{4})\b')
 __all__ = ['parse_dates']
 
 def _contains_invalid_decimal_age(text: str) -> bool:
@@ -62,6 +63,9 @@ def _extract_ages(text: str) -> list[float]:
     text = _normalize_half(text)
     numbers = re.findall(r'\d+(?:\.5)?', text)
     return [float(n) for n in numbers]
+
+def _extract_years(text: str) -> list[int]:
+    return [int(y) for y in _YEAR_RE.findall(text)]
 
 def _age_to_date(age: float, birth: date, range_start=False, range_end=False) -> date:
     years = int(age)
@@ -110,6 +114,15 @@ def parse_dates(text: str, birth: date):
             continue
     if not dates:
         dates = _parse_month_text(text)
+
+    if not dates:
+        years = _extract_years(text)
+        if years:
+            if len(years) == 1:
+                return date(years[0], 1, 1)
+            elif len(years) >= 2:
+                start_year, end_year = sorted(years[:2])
+                return date(start_year, 1, 1), date(end_year, 12, 31)
 
     if not dates:
         if _contains_invalid_decimal_age(text):
