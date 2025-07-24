@@ -33,19 +33,19 @@ async def handle_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     birth = user_data.get('birth')
 
     keyboard = [
-        [InlineKeyboardButton('Имя', callback_data = 'name')],
-        [InlineKeyboardButton('День рождения', callback_data = 'birth')],
-        [InlineKeyboardButton('Пол', callback_data = 'gender')],
-        [InlineKeyboardButton('Ничего не менять', callback_data = 'stop')]
+        [InlineKeyboardButton('Имя', callback_data = 'name'), InlineKeyboardButton('Дату рождения', callback_data = 'birth')],
+        [InlineKeyboardButton('Пол', callback_data = 'gender'), InlineKeyboardButton('Ничего', callback_data = 'stop')]
     ]
 
     gender_text = {'male': 'Парень', 'female': 'Девушка'}.get(gender, 'не указан')
-    text = (
-        f'Имя: {name or "не указано"}\n'
-        f'День рождения: {birth or "не указан"}\n'
-        f'Пол: {gender_text}.\n\n'
-        'Что хочешь поменять?'
-    )
+
+    intro = 'Вот, что я о тебе уже знаю:\n\n'
+    if name: 
+        name_str   = f'Тебя зовут {name} и ты {"девушка" if gender == "female" else "парень"}\n' 
+    if birth: 
+        birth_str  = f'Ты родил{"ась" if gender == "female" else "ся"} {birth}\n\n'
+    outro = 'Что хочешь поменять?' 
+    text = intro + '_' + name_str + birth_str + '_' + outro
 
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
@@ -65,7 +65,7 @@ async def me_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if answer == 'name':
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
-            text       = 'Как тебя зовут?',
+            text       = 'Как мне к тебе обращаться?',
             parse_mode = 'Markdown'
         )
         return ME_NAME
@@ -83,7 +83,7 @@ async def me_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]]
         await context.bot.send_message(
             chat_id      = update.effective_chat.id,
-            text         = 'Кто ты по жизни?',
+            text         = 'Ты парень или девушка?',
             parse_mode   = 'Markdown',
             reply_markup = InlineKeyboardMarkup(keyboard)
         )
@@ -112,7 +112,7 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
-        text         = 'Имя обновлено. Что-нибудь ещё поменяем?',
+        text         = 'Обновила имя. Что-нибудь ещё?',
         parse_mode   = 'Markdown',
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
@@ -133,16 +133,14 @@ async def change_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await set_birth(update.effective_user.id, update.message.text.strip())
 
     keyboard = [
-        [InlineKeyboardButton('Имя', callback_data = 'name')],
-        [InlineKeyboardButton('День рождения', callback_data = 'birth')],
-        [InlineKeyboardButton('Пол', callback_data = 'gender')],
-        [InlineKeyboardButton('Закончить', callback_data = 'stop')]
+        [InlineKeyboardButton('Имя', callback_data = 'name'), InlineKeyboardButton('Дату рождения', callback_data = 'birth')],
+        [InlineKeyboardButton('Пол', callback_data = 'gender'), InlineKeyboardButton('Закончить', callback_data = 'stop')]
     ]
     stop_event.set()
     await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
-        text         = 'День рождения обновлён. Что-нибудь ещё поменяем?',
+        text         = 'День рождения обновила. Что-нибудь ещё?',
         parse_mode   = 'Markdown',
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
@@ -160,16 +158,14 @@ async def change_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await set_gender(update.effective_user.id, gender)
 
     keyboard = [
-        [InlineKeyboardButton('Имя', callback_data = 'name')],
-        [InlineKeyboardButton('День рождения', callback_data = 'birth')],
-        [InlineKeyboardButton('Пол', callback_data = 'gender')],
-        [InlineKeyboardButton('Закончить', callback_data = 'stop')]
+        [InlineKeyboardButton('Имя', callback_data = 'name'), InlineKeyboardButton('Дату рождения', callback_data = 'birth')],
+        [InlineKeyboardButton('Пол', callback_data = 'gender'), InlineKeyboardButton('Закончить', callback_data = 'stop')]
     ]
     stop_event.set()
     await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
-        text         = 'Пол обновлён. Что-нибудь ещё поменяем?',
+        text         = 'Обновила твой пол. Хочешь поменять что-то еще?',
         parse_mode   = 'Markdown',
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
