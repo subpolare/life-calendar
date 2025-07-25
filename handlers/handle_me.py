@@ -37,8 +37,6 @@ async def handle_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton('Пол', callback_data = 'gender'), InlineKeyboardButton('Ничего', callback_data = 'stop')]
     ]
 
-    gender_text = {'male': 'Парень', 'female': 'Девушка'}.get(gender, 'не указан')
-
     intro = 'Вот, что я о тебе уже знаю:\n\n'
     if name: 
         name_str   = f'Тебя зовут {name} и ты {"девушка" if gender == "female" else "парень"}\n' 

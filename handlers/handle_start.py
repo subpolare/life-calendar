@@ -346,7 +346,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
                 return ASK_DATE
     else:
         try:
-            event = parse_dates(answer, date(year, month, day))
+            event = parse_dates(answer, date(year, month, day)) # ТУТ ТАК НЕЛЬЗЯ
         except ValueError:
             if event_type == 'Курение':
                 text_error = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»'

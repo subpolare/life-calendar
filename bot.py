@@ -3,8 +3,8 @@ from handlers.handle_calendar import handle_calendar, user_action, add_new_event
 from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, DELETE_DATA
 from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar, clean_data, ask_more
 from handlers.handle_oblivion import DELETE_ACCOUNT, handle_oblivion, oblivion_answer
+from handlers.handle_community import handle_community, gatekeeper
 from handlers.handle_help import handle_help
-from handlers.handle_community import handle_community
 from handlers.handle_me import (
     ME_ACTION, ME_NAME, ME_BIRTHDAY, ME_GENDER,
     handle_me, me_option, change_name, change_birthday, change_gender,
@@ -14,7 +14,10 @@ from utils.dbtools import init_pool, close_pool
 import telegram 
 from telegram import Update
 from telegram.request import HTTPXRequest
-from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes, ConversationHandler, CallbackQueryHandler
+from telegram.ext import (
+    ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes, 
+    ConversationHandler, CallbackQueryHandler, ChatJoinRequestHandler
+)
 
 import os, warnings
 from dotenv import load_dotenv
@@ -106,9 +109,9 @@ def main():
     application.add_handler(calendar_conversation)
     application.add_handler(me_conversation)
     application.add_handler(oblivion_conversation)
+    application.add_handler(ChatJoinRequestHandler(gatekeeper))
     application.add_handler(CommandHandler('community', handle_community))
     application.add_handler(CommandHandler('help', handle_help))
-    # Изменить свои данные можно командой /me
     application.run_polling()
 
 if __name__ == '__main__':
