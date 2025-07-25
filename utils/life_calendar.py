@@ -22,7 +22,7 @@ BLACK_FONT =    {'family': 'Montserrat', 'weight': 'black',   'size': plt.rcPara
 BOLD_FONT =     {'family': 'Montserrat', 'weight': 'bold',    'size': plt.rcParams.get('font.size', 12) * 0.6}
 TEXT_FONT =     {'family': 'Montserrat', 'weight': 'regular', 'size': plt.rcParams.get('font.size', 12) * 0.6}
 
-def create_calendar(birthday, fname, female = True, h = 13, w = 9, transparent = False, event = None, label = None):
+def create_calendar(birthday, fname, female = True, h = 13, w = 9, transparent = False, event = None, label = None, expectation = None):
     plt.rcParams.update(plt.rcParamsDefault)
     _, ax = plt.subplots(figsize = (w, h))
     ax.set_axis_off()
@@ -41,10 +41,11 @@ def create_calendar(birthday, fname, female = True, h = 13, w = 9, transparent =
     life_weeks = (date.today() - birthday).days // 7 
 
     weeks = np.linspace(0, h, 52)
-    if female: 
-        years = np.linspace(w, 0, 81)
-    else: 
-        years = np.linspace(w, 0, 71)
+    if expectation is None:
+        exp_years = 80 if female else 70
+    else:
+        exp_years = expectation
+    years = np.linspace(w, 0, exp_years + 1)
 
     for year in years:
         for week in weeks:

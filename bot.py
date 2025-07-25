@@ -1,7 +1,12 @@
 from handlers.handle_calendar import ACTION_TYPE, EVENT_NAME_POLL, EVENT_NAME_TEXT
 from handlers.handle_calendar import handle_calendar, user_action, add_new_event, action
-from handlers.handle_start import ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, DELETE_DATA
-from handlers.handle_start import handle_start, ask, ask_name, ask_gender, ask_type, ask_dates, create_second_calendar, clean_data, ask_more
+from handlers.handle_start import (
+    ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE,
+    HABIT_INTRO, HABIT_Q, DELETE_DATA,
+    handle_start, ask, ask_name, ask_gender, ask_type, ask_dates,
+    create_second_calendar, clean_data, ask_more
+)
+from handlers.habits import ask_habits_intro, habits_intro_answer, habits_question_answer
 from handlers.handle_oblivion import DELETE_ACCOUNT, handle_oblivion, oblivion_answer
 from handlers.handle_community import handle_community, gatekeeper
 from handlers.handle_help import handle_help
@@ -88,6 +93,8 @@ def main():
             ASK_TYPE     : [CallbackQueryHandler(ask_dates)],
             ASK_DATE     : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
             ASK_MORE     : [CallbackQueryHandler(ask_more)],
+            HABIT_INTRO : [CallbackQueryHandler(habits_intro_answer)],
+            HABIT_Q     : [CallbackQueryHandler(habits_question_answer)],
         },
         fallbacks = [CommandHandler('cancel', cancel)],
         allow_reentry = True
