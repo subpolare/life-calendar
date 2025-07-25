@@ -13,8 +13,12 @@ COMMUNITY_ID = os.getenv('COMMUNITY_ID')
 
 async def gatekeeper(update: Update, context: ContextTypes.DEFAULT_TYPE, store = None):
     req: ChatJoinRequest = update.chat_join_request
+    print(f'👀 I see someone trying to join: {req.invite_link.invite_link}')
     ok_user = store.pop(req.invite_link.invite_link)
+    print(f'👀 That\'s who it is: {ok_user}') 
+    print(f'That\'s what I\'m waiting for: {req.from_user.id}')
     if ok_user == req.from_user.id:
+        print('✅ Accepted')
         await context.bot.approve_chat_join_request(COMMUNITY_ID, req.from_user.id)
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
@@ -22,6 +26,7 @@ async def gatekeeper(update: Update, context: ContextTypes.DEFAULT_TYPE, store =
             parse_mode = 'HTML',
         )
     else:
+        print('❌ Rejected')
         await context.bot.decline_chat_join_request(COMMUNITY_ID, req.from_user.id)
 
 # ———————————————————————————————————————— COMMUNITY HANDLER ————————————————————————————————————————

@@ -84,7 +84,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_document(
             chat_id    = update.effective_chat.id,
             document   = photo,
-            caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он про среднего человек в России, но хочется сделать его лично для тебя', 
+            caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он про среднего человека в России, но хочется сделать его лично для тебя', 
             parse_mode = 'Markdown'
         )
     
