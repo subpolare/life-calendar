@@ -5,7 +5,18 @@ from security import encryption
 from datetime import date, datetime
 load_dotenv()
 
-DATABASE_URL = os.getenv('DATABASE_URL')
+# Build a PostgreSQL DSN from individual environment variables.
+# DATABASE_URL is treated as the host name. Other connection
+# parameters have sane defaults so the bot can run without a
+# separate .env file.
+DB_HOST     = os.getenv('DATABASE_URL', 'db')
+DB_PORT     = os.getenv('DATABASE_PORT', '5432')
+DB_USER     = os.getenv('DATABASE_USER', 'postgres')
+DB_PASSWORD = os.getenv('DATABASE_PASSWORD', 'postgres')
+DB_NAME     = os.getenv('POSTGRES_DB', 'life')
+
+# Final DSN used by asyncpg
+DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 _pool: asyncpg.Pool | None = None
 
 async def init_pool(min_size: int = 5, max_size: int = 20):
