@@ -234,8 +234,23 @@ async def delete_data(user_id: int):
     async with pool.acquire() as conn:
         await conn.execute('UPDATE users SET name = NULL, birth = NULL, gender = NULL, data = NULL WHERE id = $1;', user_id)
 
+async def set_expectation(user_id: int, value: int):
+    if value < 55:
+        value = 55
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            'INSERT INTO users(id, expectation) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET expectation = EXCLUDED.expectation;',
+            user_id, value
+        )
+
+async def get_expectation(user_id: int) -> int | None:
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow('SELECT expectation FROM users WHERE id = $1;', user_id)
+        return row['expectation'] if row else None
+
 async def delete_user(user_id: int):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         await conn.execute('DELETE FROM users WHERE id = $1;', user_id)
-    
