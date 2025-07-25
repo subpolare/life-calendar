@@ -1,7 +1,8 @@
 from dotenv import load_dotenv
 import warnings, os, asyncio, random
-from telegram.ext import ContextTypes
 from utils.typing import keep_typing
+from utils.dbtools import user_exists
+from telegram.ext import ContextTypes
 from telegram import Update, ChatJoinRequest
 from datetime import datetime, timedelta, timezone
 warnings.filterwarnings('ignore')
@@ -37,7 +38,14 @@ async def gatekeeper(update: Update, context: ContextTypes.DEFAULT_TYPE, store =
 
 @keep_typing
 async def handle_community(update: Update, context: ContextTypes.DEFAULT_TYPE, store = None):
-    await asyncio.sleep(3)
+    await asyncio.sleep(3) 
+    exist = await user_exists(update.effective_user.id) 
+    if not exist:
+        await context.bot.send_message(
+            chat_id     = update.effective_chat.id,
+            text        = f'Чтобы использовать эту команду, тебе сначала нужно зарегестрироваться. Для этого нажми на /start', 
+            parse_mode  = 'Markdown'
+        )
     try:
         expires = datetime.now(timezone.utc) + timedelta(minutes = 2)
         invite = await context.bot.create_chat_invite_link(

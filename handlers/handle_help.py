@@ -1,4 +1,5 @@
 from telegram.ext import ContextTypes
+from utils.dbtools import user_exists
 from utils.typing import keep_typing
 from dotenv import load_dotenv
 from telegram import Update
@@ -9,6 +10,14 @@ load_dotenv()
 
 @keep_typing
 async def handle_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await asyncio.sleep(3) 
+    exist = await user_exists(update.effective_user.id) 
+    if not exist:
+        await context.bot.send_message(
+            chat_id     = update.effective_chat.id,
+            text        = f'Чтобы использовать эту команду, тебе сначала нужно зарегестрироваться. Для этого нажми на /start', 
+            parse_mode  = 'Markdown'
+        )
     help_text = (
         'Вот небольшой список того, что я умею\n\n'
         '/start — Начать наше знакомство с самого начала\n\n'

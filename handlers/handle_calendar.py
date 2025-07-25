@@ -56,7 +56,7 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not exist: 
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
-            text        = f'Чтобы использовать эту команду, нужно зарегестрироваться. Для этого нажми на /start', 
+            text        = f'Чтобы использовать эту команду, тебе сначала нужно зарегестрироваться. Для этого нажми на /start', 
             parse_mode  = 'Markdown'
         )
         return ConversationHandler.END
