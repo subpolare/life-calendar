@@ -5,10 +5,7 @@ from security import encryption
 from datetime import date, datetime
 load_dotenv()
 
-DATABASE_URL       = os.getenv('DATABASE_URL')
-DATABASE_PORT      = os.getenv('DATABASE_PORT')
-DATABASE_USER      = os.getenv('DATABASE_USER')
-DATABASE_PASSWORD  = os.getenv('DATABASE_PASSWORD')
+DATABASE_URL = os.getenv('DATABASE_URL')
 _pool: asyncpg.Pool | None = None
 
 async def init_pool(min_size: int = 5, max_size: int = 20):

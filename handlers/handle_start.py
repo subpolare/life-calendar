@@ -4,18 +4,12 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from datetime import date
 from dotenv import load_dotenv
 from utils.typing import _keep_typing
-from life_calendar import create_calendar
-import asyncio, random, os, secrets, re, warnings
 from utils.dateparser import parse_dates
+from utils.life_calendar import create_calendar
+import asyncio, random, os, secrets, re, warnings
 from utils.dbtools import set_birth, set_name, set_gender, get_user_data, set_empty_event, set_event, user_exists, delete_data
 warnings.filterwarnings('ignore')
 load_dotenv()
-
-DATABASE_URL       = os.getenv('DATABASE_URL')
-DATABASE_PORT      = os.getenv('DATABASE_PORT')
-DATABASE_USER      = os.getenv('DATABASE_USER')
-DATABASE_PASSWORD  = os.getenv('DATABASE_PASSWORD')
-COMMUNITY_URL      = os.getenv('COMMUNITY_URL')
 
 # ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
@@ -333,7 +327,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
             return ASK_DATE
     elif event_type == 'Образование': 
             try: 
-                start, end = list(map(int, re.findall(r'\d+', answer)))
+                start, end = list(map(int, re.findall(r'(\d+).*?(\d+)', answer)))
                 start = date(year + start + ((month, day) > (8, 31)), 9, 1)
                 end = date(year + end + ((month, day) > (8, 31)), 6, 20)
                 event = (start, end)
@@ -346,15 +340,11 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
                 return ASK_DATE
     else:
         try:
-            event = parse_dates(answer, date(year, month, day)) # ТУТ ТАК НЕЛЬЗЯ
+            event = parse_dates(answer, date(year, month, day))
         except ValueError:
-            if event_type == 'Курение':
-                text_error = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»'
-            else:
-                text_error = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 49 лет»'
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = text_error,
+                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»',
                 parse_mode   = 'Markdown',
             )
             return ASK_DATE

@@ -6,17 +6,12 @@ from typing import Any
 from datetime import date
 from dotenv import load_dotenv
 from utils.typing import _keep_typing
-from life_calendar import create_calendar
-import os, warnings, asyncio, re, secrets, random
 from utils.dateparser import parse_dates
+from utils.life_calendar import create_calendar
+import os, warnings, asyncio, re, secrets, random
 from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event, user_exists
 warnings.filterwarnings('ignore')
 load_dotenv()
-
-DATABASE_URL       = os.getenv('DATABASE_URL')
-DATABASE_PORT      = os.getenv('DATABASE_PORT')
-DATABASE_USER      = os.getenv('DATABASE_USER')
-DATABASE_PASSWORD  = os.getenv('DATABASE_PASSWORD')
 
 ACTION_TYPE, EVENT_NAME_POLL, EVENT_NAME_TEXT = range(3)
 MONTHS = {1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля', 5: 'мая', 6: 'июня', 7: 'июля', 8: 'августа', 9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря',}
