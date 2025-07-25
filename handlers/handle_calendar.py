@@ -5,7 +5,7 @@ import telegram
 from typing import Any
 from datetime import date
 from dotenv import load_dotenv
-from utils.typing import _keep_typing
+from utils.typing import keep_typing
 from utils.dateparser import parse_dates
 import os, warnings, asyncio, secrets, random
 from utils.life_calendar import create_calendar
@@ -49,9 +49,8 @@ def _to_event(obj):
 
 # ———————————————————————————————————————— CALENDAR HANDLERS ————————————————————————————————————————
 
+@keep_typing
 async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
     await asyncio.sleep(3)
     exist = await user_exists(update.effective_user.id) 
     if not exist: 
@@ -72,8 +71,6 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton('Риусем календарь!',      callback_data = 'calendar')],
             [InlineKeyboardButton('Ничего не хочу',         callback_data = 'stop')],
     ]
-    stop_event.set()
-    await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = f'Вот, из каких событий состоит твоя жизнь.\n\n_{events}_\n\nХочешь что-то поменять? Или, может, нарисовать календарь?', 
@@ -82,10 +79,8 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ACTION_TYPE
 
+@keep_typing
 async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     query = update.callback_query 
     await query.answer()
     action = query.data
@@ -97,12 +92,7 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     events = await get_events(update.effective_user.id)
     await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
     await asyncio.sleep(3)
-    
-    stop_event.set()
-    await typing_task
     if action == 'stop': 
-        stop_event.set()
-        await typing_task
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
             text        = 'Буду ждать, пока ты вернешься! Нажми /calendar, если захочешь создать новый календарь.' , 
@@ -149,9 +139,8 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ) 
         return EVENT_NAME_POLL 
 
+@keep_typing
 async def add_new_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
     await asyncio.sleep(3)
     answer = update.message.text 
 
@@ -161,35 +150,26 @@ async def add_new_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: 
         event_type, _ = answer.split(':')
     except: 
-        stop_event.set()
-        await typing_task
         await context.bot.send_message(
             chat_id      = update.effective_chat.id,
             text         = 'Не могу прочитать твой текст😔 Напиши событие, потом двоеточие и в конце либо даты в формате ДД.ММ.ГГГГ, либо возраст.\n\n_Например, «Плавание: с 16 до 23 лет» или «Дзюдо: с 25.11.2020»_', 
             parse_mode   = 'Markdown', 
         )
         return EVENT_NAME_TEXT
-
     try:
         event = parse_dates(answer, date(year, month, day))
     except ValueError:
-        stop_event.set()
-        await typing_task
         await context.bot.send_message(
             chat_id      = update.effective_chat.id,
             text         = 'Не могу прочитать твой текст😔 Напиши событие, потом двоеточие и в конце либо даты в формате ДД.ММ.ГГГГ, либо возраст.\n\n_Например, «Плавание: с 16 до 23 лет» или «Дзюдо: с 25.11.2020»_',
             parse_mode   = 'Markdown',
         )
         return EVENT_NAME_TEXT
-            
     await set_event(update.effective_user.id, event_type, event)
-    stop_event.set()
-    await typing_task
     return await handle_calendar(update, context)
 
+@keep_typing
 async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
     msg = update.callback_query.message if update.callback_query else update.effective_message
     try:
         await context.bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
@@ -209,8 +189,8 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if action == 'remove': 
         await delete_event(update.effective_user.id, event_type, event_dates)
-        stop_event.set()
-        await typing_task
+        
+        
         await context.bot.send_message(
             chat_id      = update.effective_chat.id,
             text         = 'Хорошо, удалила!', 
@@ -221,9 +201,6 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif action == 'edit': 
         await delete_event(update.effective_user.id, event_type, event_dates)
         name = event_type[0].lower() + event_type[1:] if event_type else event_type
-
-        stop_event.set()
-        await typing_task
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = (
@@ -248,9 +225,6 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             event = _to_event(event_dates) if query.data != 'empty' else None, 
             label = event_type if query.data != 'empty' else None 
         )
-
-        stop_event.set()
-        await typing_task
         with open(filename, 'rb') as photo:
             if query.data != 'empty': 
                 phrases = [

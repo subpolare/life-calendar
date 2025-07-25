@@ -1,7 +1,7 @@
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 
-from utils.typing import _keep_typing
+from utils.typing import keep_typing
 from utils.dbtools import user_exists, get_user_data, delete_user
 
 from dotenv import load_dotenv
@@ -17,6 +17,7 @@ DATABASE_PASSWORD  = os.getenv('DATABASE_PASSWORD')
 
 DELETE_ACCOUNT = range(1)
 
+@keep_typing
 async def handle_oblivion(update: Update, context: ContextTypes.DEFAULT_TYPE):
     exist = await user_exists(update.effective_user.id)
     if not exist:
@@ -42,6 +43,7 @@ async def handle_oblivion(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return DELETE_ACCOUNT
 
+@keep_typing
 async def oblivion_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -49,11 +51,7 @@ async def oblivion_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
     if answer == 'yes':
-        stop_event  = asyncio.Event()
-        typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
         await delete_user(update.effective_user.id)
-        stop_event.set()
-        await typing_task
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = 'Готово! Я удалила все твои настройки. Если захочешь начать заново, нажми /start.',

@@ -4,7 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 import asyncio, os, re, warnings
 from dotenv import load_dotenv
 
-from utils.typing import _keep_typing
+from utils.typing import keep_typing
 from utils.dbtools import get_user_data, set_name, set_birth, set_gender, user_exists
 
 warnings.filterwarnings('ignore')
@@ -17,6 +17,7 @@ DATABASE_PASSWORD  = os.getenv('DATABASE_PASSWORD')
 
 ME_ACTION, ME_NAME, ME_BIRTHDAY, ME_GENDER = range(4)
 
+@keep_typing
 async def handle_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     exist = await user_exists(update.effective_user.id)
     if not exist:
@@ -53,6 +54,7 @@ async def handle_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ME_ACTION
 
+@keep_typing
 async def me_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -94,10 +96,8 @@ async def me_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
+@keep_typing
 async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     await set_name(update.effective_user.id, update.message.text)
 
     keyboard = [
@@ -106,8 +106,6 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton('Пол', callback_data = 'gender')],
         [InlineKeyboardButton('Закончить', callback_data = 'stop')]
     ]
-    stop_event.set()
-    await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = 'Обновила имя. Что-нибудь ещё?',
@@ -116,10 +114,8 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ME_ACTION
 
+@keep_typing
 async def change_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', update.message.text.strip()):
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
@@ -134,8 +130,6 @@ async def change_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton('Имя', callback_data = 'name'), InlineKeyboardButton('Дату рождения', callback_data = 'birth')],
         [InlineKeyboardButton('Пол', callback_data = 'gender'), InlineKeyboardButton('Закончить', callback_data = 'stop')]
     ]
-    stop_event.set()
-    await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = 'День рождения обновила. Что-нибудь ещё?',
@@ -144,10 +138,8 @@ async def change_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ME_ACTION
 
+@keep_typing
 async def change_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     query = update.callback_query
     await query.answer()
     gender = query.data
@@ -159,8 +151,6 @@ async def change_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton('Имя', callback_data = 'name'), InlineKeyboardButton('Дату рождения', callback_data = 'birth')],
         [InlineKeyboardButton('Пол', callback_data = 'gender'), InlineKeyboardButton('Закончить', callback_data = 'stop')]
     ]
-    stop_event.set()
-    await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = 'Обновила твой пол. Хочешь поменять что-то еще?',

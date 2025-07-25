@@ -3,7 +3,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 
 from datetime import date
 from dotenv import load_dotenv
-from utils.typing import _keep_typing
+from utils.typing import keep_typing
 from utils.dateparser import parse_dates
 from utils.life_calendar import create_calendar
 import asyncio, random, os, secrets, re, warnings
@@ -15,6 +15,7 @@ load_dotenv()
 
 ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, DELETE_DATA = range(8)
 
+@keep_typing
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     exist = await user_exists(update.effective_user.id) 
     if exist: 
@@ -39,19 +40,16 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode = f'Markdown'
         )
         return ASK_BIRTHDAY
-    
+
+@keep_typing    
 async def clean_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query 
     await query.answer()
     answer = query.data
 
     if answer == 'yes':
-        stop_event  = asyncio.Event()
-        typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
         await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
         await delete_data(update.effective_user.id)
-        stop_event.set()
-        await typing_task
         return await handle_start(update, context)
     else: 
         await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
@@ -62,10 +60,8 @@ async def clean_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
+@keep_typing
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', update.message.text.strip()):
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
@@ -94,8 +90,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
         InlineKeyboardButton('Нет, но я вернусь', callback_data = 'no')
     ]]
     await asyncio.sleep(random.uniform(1, 3))
-    stop_event.set()
-    await typing_task
+    
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = f'Хочешь, создам календарь на основе именно твоей жизни? Для этого я задам тебе несколько вопросов, это займет не больше 5 минут', 
@@ -104,10 +99,8 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ASK
 
+@keep_typing
 async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     query = update.callback_query 
     await query.answer()
     answer = query.data
@@ -118,9 +111,7 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await asyncio.sleep(random.uniform(1, 3))
-    if answer == 'yes': 
-        stop_event.set()
-        await typing_task
+    if answer == 'yes':  
         text = 'Тогда начнем со знакомства. Как тебя зовут?'
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
@@ -128,9 +119,7 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode  = 'Markdown'
         )
         return ASK_NAME
-    else:
-        stop_event.set()
-        await typing_task
+    else:    
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
             text        = 'Буду ждать, пока ты вернешься! Нажми /start, если решишь создать новый календарь.' , 
@@ -138,20 +127,17 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
+@keep_typing
 async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     await asyncio.sleep(random.uniform(1, 3))
     context.user_data['name'] = update.message.text
     await set_name(update.effective_user.id, context.user_data['name'])
 
     keyboard = [[
-            InlineKeyboardButton('Парень', callback_data = 'male'),
-            InlineKeyboardButton('Девушка', callback_data = 'female')
+        InlineKeyboardButton('Парень', callback_data = 'male'),
+        InlineKeyboardButton('Девушка', callback_data = 'female')
     ]]
-    stop_event.set()
-    await typing_task
+    
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = f'Рада познакомиться, {context.user_data["name"]}! Извини за вопрос, но ты парень или девушка? Отвечай честно: это нужно для твоего календаря.', 
@@ -160,10 +146,8 @@ async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ASK_GENDER
 
+@keep_typing
 async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     query = update.callback_query 
     await query.answer()
     gender = query.data
@@ -200,15 +184,11 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode = 'Markdown'
             )
         os.remove(filename)
-
-    await asyncio.sleep(3)
     return await ask_event(update, context)
 
+@keep_typing
 async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gender = context.user_data.get('gender', 'male')
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     added = context.user_data.get('added_events', set())
     keyboard = []
     row1 = []
@@ -228,8 +208,6 @@ async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if added:
         keyboard.append([InlineKeyboardButton('Давай закончим', callback_data = 'finish')])
 
-    stop_event.set()
-    await typing_task
     if keyboard:
         await context.bot.send_message(
             chat_id      = update.effective_chat.id,
@@ -241,10 +219,8 @@ async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         return await finish_start(update, context)
 
+@keep_typing
 async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     query = update.callback_query 
     await query.answer()
     answer = query.data
@@ -285,8 +261,6 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await set_empty_event(update.effective_user.id, 'Работа', first = first)
 
     await asyncio.sleep(random.uniform(1, 3))
-    stop_event.set()
-    await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = text, 
@@ -294,10 +268,8 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ASK_DATE
 
+@keep_typing
 async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     event_key = context.user_data.get('event_type')
     key_map = {
         'education': 'Образование',
@@ -365,8 +337,6 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
     female = user_data['gender'] == 'female'
     create_calendar(birth, fname = filename, female = female, event = event, label = event_type)
 
-    stop_event.set()
-    await typing_task
     with open(filename, 'rb') as photo:
         await context.bot.send_document(
             chat_id    = update.effective_chat.id,
@@ -388,9 +358,9 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
         parse_mode   = 'Markdown',
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
-
     return ASK_MORE
 
+@keep_typing
 async def ask_more(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -402,10 +372,8 @@ async def ask_more(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         return await finish_start(update, context)
 
+@keep_typing
 async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    stop_event  = asyncio.Event()
-    typing_task = context.application.create_task(_keep_typing(update.effective_chat.id, context.bot, stop_event))
-
     await asyncio.sleep(3)
     await context.bot.send_message(
         chat_id    = update.effective_chat.id,
@@ -418,13 +386,9 @@ async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await asyncio.sleep(3)
-
-    stop_event.set()
-    await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = 'Теперь ты можешь создавать свои собственные календари с любыми событиями из жизни. Для этого нажми на /calendar\n\nА еще вступай в наше закрытое комьюнити, для этого нажми на /community',
         parse_mode   = 'Markdown',
     )
-
     return ConversationHandler.END
