@@ -1,34 +1,12 @@
-version: "3.9"
-
 services:
   life-calendar-bot:
     build: .
     env_file:
       - .env
     environment:
-      LIFE_BOT_TOKEN: ${TELEGRAM_TOKEN}
-      DATABASE_URL: ${DATABASE_URL:-db}
-      DATABASE_PORT: ${DATABASE_PORT:-5432}
-      DATABASE_USER: ${DATABASE_USER:-postgres}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-life}
-      COMMUNITY_ID: ${COMMUNITY_URL}
+      MPLCONFIGDIR:   /tmp/mplcache
+      LIFE_BOT_TOKEN: ${LIFE_BOT_TOKEN}
+      DATABASE_URL:   ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/life}
+      COMMUNITY_ID:   ${COMMUNITY_ID}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
-    restart: always
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15
-    restart: always
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-life}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    ports:
-      - "5432:5432"
-
-volumes:
-  db-data:
+    restart: unless-stopped

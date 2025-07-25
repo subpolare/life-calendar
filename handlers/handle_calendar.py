@@ -7,8 +7,8 @@ from datetime import date
 from dotenv import load_dotenv
 from utils.typing import _keep_typing
 from utils.dateparser import parse_dates
+import os, warnings, asyncio, secrets, random
 from utils.life_calendar import create_calendar
-import os, warnings, asyncio, re, secrets, random
 from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event, user_exists
 warnings.filterwarnings('ignore')
 load_dotenv()

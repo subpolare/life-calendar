@@ -84,7 +84,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_document(
             chat_id    = update.effective_chat.id,
             document   = photo,
-            caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он про среднего человек в России, но хочется сделать его лично для тебя.', 
+            caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он про среднего человек в России, но хочется сделать его лично для тебя', 
             parse_mode = 'Markdown'
         )
     
@@ -321,30 +321,31 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
         except: 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «В 7 лет, 11 классов»', 
+                text         = 'ERROR 1 | Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «В 7 лет, 11 классов»', 
                 parse_mode   = 'Markdown', 
             )
             return ASK_DATE
     elif event_type == 'Образование': 
-            try: 
-                start, end = list(map(int, re.findall(r'(\d+).*?(\d+)', answer)))
-                start = date(year + start + ((month, day) > (8, 31)), 9, 1)
-                end = date(year + end + ((month, day) > (8, 31)), 6, 20)
-                event = (start, end)
-            except: 
-                await context.bot.send_message(
-                    chat_id      = update.effective_chat.id,
-                    text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 7 до 22 лет»', 
-                    parse_mode   = 'Markdown', 
-                ) 
-                return ASK_DATE
+        try: 
+            m = re.search(r'(\d+).*?(\d+)', answer)
+            start, end = map(int, m.groups())
+            start = date(year + start + ((month, day) > (8, 31)), 9, 1)
+            end = date(year + end + ((month, day) > (8, 31)), 6, 20)
+            event = (start, end)
+        except: 
+            await context.bot.send_message(
+                chat_id      = update.effective_chat.id,
+                text         = 'ERROR 2 | Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 7 до 22 лет»', 
+                parse_mode   = 'Markdown', 
+            ) 
+            return ASK_DATE
     else:
         try:
             event = parse_dates(answer, date(year, month, day))
         except ValueError:
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»',
+                text         = 'ERROR 3 | Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»',
                 parse_mode   = 'Markdown',
             )
             return ASK_DATE
