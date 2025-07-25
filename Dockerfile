@@ -1,4 +1,5 @@
 FROM python:3.11-slim
+ENV PYTHONUNBUFFERED=1
 
 # Create non-root user
 RUN addgroup --system app && adduser --system --ingroup app app

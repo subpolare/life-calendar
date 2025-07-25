@@ -91,7 +91,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     os.remove(filename)
     keyboard = [[
         InlineKeyboardButton('Конечно!', callback_data = 'yes'),
-        InlineKeyboardButton('Нет, но я за ним вернусь', callback_data = 'no')
+        InlineKeyboardButton('Нет, но я вернусь', callback_data = 'no')
     ]]
     await asyncio.sleep(random.uniform(1, 3))
     stop_event.set()
@@ -321,7 +321,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
         except: 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = 'ERROR 1 | Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «В 7 лет, 11 классов»', 
+                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «В 7 лет, 11 классов»', 
                 parse_mode   = 'Markdown', 
             )
             return ASK_DATE
@@ -335,7 +335,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
         except: 
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = 'ERROR 2 | Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 7 до 22 лет»', 
+                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 7 до 22 лет»', 
                 parse_mode   = 'Markdown', 
             ) 
             return ASK_DATE
@@ -345,7 +345,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
         except ValueError:
             await context.bot.send_message(
                 chat_id      = update.effective_chat.id,
-                text         = 'ERROR 3 | Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»',
+                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»',
                 parse_mode   = 'Markdown',
             )
             return ASK_DATE
@@ -423,7 +423,7 @@ async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await typing_task
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
-        text         = 'Теперь ты можешь создавать свои собственные календари с любыми событиями из жизни. Для этого нажми на /calendar',
+        text         = 'Теперь ты можешь создавать свои собственные календари с любыми событиями из жизни. Для этого нажми на /calendar\n\nА еще вступай в наше закрытое комьюнити, для этого нажми на /community',
         parse_mode   = 'Markdown',
     )
 

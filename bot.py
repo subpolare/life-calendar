@@ -10,6 +10,8 @@ from handlers.handle_me import (
     handle_me, me_option, change_name, change_birthday, change_gender,
 )
 from utils.dbtools import init_pool, close_pool
+from datetime import datetime, timezone
+from functools import partial
 
 import telegram 
 from telegram import Update
@@ -33,6 +35,24 @@ request = HTTPXRequest(
     write_timeout        = 60.0,
     media_write_timeout  = 120.0,
 )
+
+class InviteStore:
+    def __init__(self):
+        self._data: dict[str, tuple[int, datetime]] = {}
+
+    def add(self, link: str, user_id: int, expires_at: datetime):
+        self._data[link] = (user_id, expires_at)
+
+    def pop(self, link: str):
+        return self._data.pop(link, (None, None))[0]
+
+    def cleanup(self):
+        now = datetime.now(timezone.utc)
+        for link, (_, exp) in list(self._data.items()):
+            if exp <= now:
+                del self._data[link]
+
+store = InviteStore()
 
 # ———————————————————————————————————————— INITIALIZING BOT ————————————————————————————————————————
 
@@ -109,8 +129,8 @@ def main():
     application.add_handler(calendar_conversation)
     application.add_handler(me_conversation)
     application.add_handler(oblivion_conversation)
-    application.add_handler(ChatJoinRequestHandler(gatekeeper))
-    application.add_handler(CommandHandler('community', handle_community))
+    application.add_handler(ChatJoinRequestHandler(partial(gatekeeper, store = store)))
+    application.add_handler(CommandHandler('community', partial(handle_community, store = store)))
     application.add_handler(CommandHandler('help', handle_help))
     application.run_polling()
 
