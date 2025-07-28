@@ -11,10 +11,7 @@ from utils.dbtools import (
     set_birth, set_name, set_gender, get_user_data,
     set_empty_event, set_event, user_exists, delete_data
 )
-from handlers.habits import (
-    HABIT_INTRO, HABIT_Q,
-    ask_habits_intro, habits_intro_answer, habits_question_answer
-)
+from handlers.habits import ask_habits_intro, habits_intro_answer, habits_question_answer
 warnings.filterwarnings('ignore')
 load_dotenv()
 

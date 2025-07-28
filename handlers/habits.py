@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 from datetime import date
 import secrets, os
 from utils.life_calendar import create_calendar
+from handlers.handle_start import finish_start
 from utils.dbtools import set_expectation, get_user_data
 from utils.typing import keep_typing
 
@@ -38,15 +39,15 @@ QUESTIONS = [
         'options': [('Да', -2), ('Нет', 7)],
     },
     {
-        'text': 'Следишь за рационом: больше белка, клетчатки, орехи, мало сахара?',
+        'text': 'Следишь за тем, чтобы в еде было больше белка, чем жира, много клетчатки, орехов и мало сахара?',
         'options': [('Да', 5), ('Нет', 0)],
     },
     {
-        'text': 'Какого цвета на карте качества воздуха город, в котором ты живешь больше всего?',
+        'text': 'Какого цвета на [этой карте качества воздуха](https://www.iqair.com/ru/air-quality-map) город, в котором ты живешь больше всего?',
         'options': [
             ('Синий или зеленый', 2),
             ('Желтый', 0),
-            ('Красный', -3),
+            ('Красный или фиолетовый', -3),
         ],
     },
 ]
@@ -54,14 +55,14 @@ QUESTIONS = [
 @keep_typing
 async def ask_habits_intro(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[
-        InlineKeyboardButton('Да', callback_data='yes'),
-        InlineKeyboardButton('Нет', callback_data='no')
+        InlineKeyboardButton('Да', callback_data  = 'yes'),
+        InlineKeyboardButton('Нет', callback_data = 'no')
     ]]
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text='Хочешь пройти небольшой опрос из 8 вопросов? Он поможет узнать, сколько клеточек в твоем календаре.',
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
+        chat_id      = update.effective_chat.id,
+        text         = 'Хочешь пройти небольшой опрос из 8 вопросов? Он поможет узнать, сколько клеточек именно в твоем календаре, а не в среднем по России',
+        reply_markup = InlineKeyboardMarkup(keyboard),
+        parse_mode   = 'Markdown'
     )
     return HABIT_INTRO
 
@@ -70,13 +71,13 @@ async def habits_intro_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
     answer = query.data
-    await context.bot.delete_message(chat_id=query.message.chat.id, message_id=query.message.message_id)
+    await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
+    
     if answer == 'yes':
         context.user_data['habit_idx'] = 0
-        context.user_data['delta'] = 0
+        context.user_data['delta']     = 0
         return await _ask_next_question(update, context)
     else:
-        from handlers.handle_start import finish_start
         return await finish_start(update, context)
 
 async def _ask_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -139,5 +140,4 @@ async def _finish_questions(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=f'Твоя ожидаемая продолжительность жизни изменилась на {sign}{expectation - base} лет.',
         parse_mode='Markdown'
     )
-    from handlers.handle_start import finish_start
     return await finish_start(update, context)
