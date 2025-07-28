@@ -11,7 +11,7 @@ from utils.dbtools import (
     set_birth, set_name, set_gender, get_user_data,
     set_empty_event, set_event, user_exists, delete_data
 )
-from handlers.habits import ask_habits_intro, habits_intro_answer, habits_question_answer
+# from handlers.habits import ask_habits_intro, habits_intro_answer, habits_question_answer
 warnings.filterwarnings('ignore')
 load_dotenv()
 
@@ -78,6 +78,15 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await set_birth(update.effective_user.id, context.user_data['birthday'])
     day, month, year = map(int, context.user_data['birthday'].split('.'))
     filename = f'tmp/{secrets.token_hex(8)}.png'
+    try: 
+        birth = date(year, month, day)
+    except: 
+        await context.bot.send_message(
+            chat_id    = update.effective_chat.id,
+            text       = f'Что-то не так с форматом даты. Пожалуйста, напиши дату ее в формате ДД.ММ.ГГГГ: например, 01.09.1990',
+            parse_mode = 'Markdown'
+        )
+        return ASK_BIRTHDAY
     create_calendar(date(year, month, day), fname = filename, female = False)
 
     with open(filename, 'rb') as photo:
@@ -221,7 +230,8 @@ async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ASK_TYPE
     else:
-        return await ask_habits_intro(update, context)
+        # return await ask_habits_intro(update, context)
+        return await finish_start(update, context)
 
 @keep_typing
 async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -230,7 +240,8 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = query.data
     if answer == 'finish':
         await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
-        return await ask_habits_intro(update, context)
+        # return await ask_habits_intro(update, context)
+        return await finish_start(update, context)
     user_data = await get_user_data(update.effective_user.id)
     gender = user_data.get('gender')
     if not gender:
@@ -374,7 +385,8 @@ async def ask_more(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if answer == 'more_yes':
         return await ask_event(update, context)
     else:
-        return await ask_habits_intro(update, context)
+        # return await ask_habits_intro(update, context)
+        return await finish_start(update, context)
 
 @keep_typing
 async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
