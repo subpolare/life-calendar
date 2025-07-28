@@ -1,10 +1,9 @@
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 
-import asyncio, os, re, warnings
+import os, re, warnings
 from dotenv import load_dotenv
-
-from utils.typing import keep_typing
+from utils.typing_task import keep_typing
 from utils.dbtools import get_user_data, set_name, set_birth, set_gender, user_exists
 
 warnings.filterwarnings('ignore')

@@ -1,13 +1,10 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from utils.dbtools import set_expectation, get_user_data
+from utils.life_calendar import create_calendar
 from telegram.ext import ContextTypes
+from utils.typing import keep_typing
 from datetime import date
 import secrets, os
-from utils.life_calendar import create_calendar
-from handlers.handle_start import finish_start
-from utils.dbtools import set_expectation, get_user_data
-from utils.typing import keep_typing
-
-HABIT_INTRO, HABIT_Q = range(2)
 
 QUESTIONS = [
     {
@@ -54,6 +51,7 @@ QUESTIONS = [
 
 @keep_typing
 async def ask_habits_intro(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from handlers.handle_start import HABIT_INTRO
     keyboard = [[
         InlineKeyboardButton('Да', callback_data  = 'yes'),
         InlineKeyboardButton('Нет', callback_data = 'no')
@@ -78,9 +76,11 @@ async def habits_intro_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
         context.user_data['delta']     = 0
         return await _ask_next_question(update, context)
     else:
+        from handlers.handle_start import finish_start
         return await finish_start(update, context)
 
 async def _ask_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from handlers.handle_start import HABIT_Q
     idx = context.user_data.get('habit_idx', 0)
     if idx >= len(QUESTIONS):
         return await _finish_questions(update, context)
@@ -140,4 +140,5 @@ async def _finish_questions(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=f'Твоя ожидаемая продолжительность жизни изменилась на {sign}{expectation - base} лет.',
         parse_mode='Markdown'
     )
+    from handlers.handle_start import finish_start
     return await finish_start(update, context)

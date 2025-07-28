@@ -1,7 +1,7 @@
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 
-from utils.typing import keep_typing
+from utils.typing_task import keep_typing
 from utils.dbtools import user_exists, get_user_data, delete_user
 
 from dotenv import load_dotenv

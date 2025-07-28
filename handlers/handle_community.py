@@ -1,8 +1,8 @@
 from dotenv import load_dotenv
 import warnings, os, asyncio, random
-from utils.typing import keep_typing
 from utils.dbtools import user_exists
 from telegram.ext import ContextTypes
+from utils.typing_task import keep_typing
 from telegram import Update, ChatJoinRequest
 from datetime import datetime, timedelta, timezone
 warnings.filterwarnings('ignore')

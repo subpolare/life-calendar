@@ -1,6 +1,6 @@
+from utils.typing_task import keep_typing
 from telegram.ext import ContextTypes
 from utils.dbtools import user_exists
-from utils.typing import keep_typing
 from dotenv import load_dotenv
 from telegram import Update
 import asyncio, warnings

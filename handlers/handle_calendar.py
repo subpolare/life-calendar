@@ -5,8 +5,8 @@ import telegram
 from typing import Any
 from datetime import date
 from dotenv import load_dotenv
-from utils.typing import keep_typing
 from utils.dateparser import parse_dates
+from utils.typing_task import keep_typing
 import os, warnings, asyncio, secrets, random
 from utils.life_calendar import create_calendar
 from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event, user_exists

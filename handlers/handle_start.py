@@ -3,8 +3,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 
 from datetime import date
 from dotenv import load_dotenv
-from utils.typing import keep_typing
 from utils.dateparser import parse_dates
+from utils.typing_task import keep_typing
 from utils.life_calendar import create_calendar
 import asyncio, random, os, secrets, re, warnings
 from utils.dbtools import (
