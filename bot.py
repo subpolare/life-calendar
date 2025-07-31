@@ -14,8 +14,7 @@ from handlers.handle_me import (
     ME_ACTION, ME_NAME, ME_BIRTHDAY, ME_GENDER,
     handle_me, me_option, change_name, change_birthday, change_gender,
 )
-from utils.dbtools import init_pool, close_pool, delete_user
-from utils.typing_task import keep_typing
+from utils.dbtools import init_pool, close_pool
 from datetime import datetime, timezone
 from functools import partial
 
