@@ -9,13 +9,13 @@ WORKDIR /app
 # Install system dependencies for Node canvas
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs npm \
-    build-essential libcairo2-dev libjpeg-dev libpango1.0-dev libgif-dev librsvg2-dev \
+    build-essential gyp libcairo2-dev libjpeg-dev libpango1.0-dev libgif-dev librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python and Node dependencies
 COPY requirements.txt package.json ./
 RUN pip install --no-cache-dir -r requirements.txt && \
-    npm install --production && \
+    npm install --omit=dev && \
     rm -rf /root/.npm
 
 # Copy application files
