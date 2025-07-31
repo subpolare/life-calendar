@@ -6,9 +6,17 @@ RUN addgroup --system app && adduser --system --ingroup app app
 
 WORKDIR /app
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies for Node canvas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nodejs npm \
+    build-essential libcairo2-dev libjpeg-dev libpango1.0-dev libgif-dev librsvg2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python and Node dependencies
+COPY requirements.txt package.json ./
+RUN pip install --no-cache-dir -r requirements.txt && \
+    npm install --production && \
+    rm -rf /root/.npm
 
 # Copy application files
 COPY . .

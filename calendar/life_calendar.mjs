@@ -24,7 +24,7 @@ const COLORS = {
 const TMP_DIR = path.resolve('../tmp');
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
-function createCalendar (birthday, opts = {}) {
+export function createCalendar (birthday, opts = {}) {
   const {
     lifeExpectancy = 80,
     event          = null,
