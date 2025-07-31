@@ -38,6 +38,7 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return DELETE_DATA 
     else: 
+        print(f'⏳ I was activated by a user: {update.effective_user.id}')
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Когда у тебя День рождения?* Напиши в формате ДД.ММ.ГГГГ, например, 01.09.1990', 

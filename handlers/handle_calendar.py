@@ -51,6 +51,7 @@ def _to_event(obj):
 
 @keep_typing
 async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f'✍️ This user is trying to create a calendar: {update.effective_user.id}')
     await asyncio.sleep(3)
     exist = await user_exists(update.effective_user.id) 
     if not exist: 
@@ -68,7 +69,7 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton('Добавить новое событие', callback_data = 'add')],
             [InlineKeyboardButton('Хочу кое-что удалить',   callback_data = 'remove')],
             [InlineKeyboardButton('Давай кое-что поменяем', callback_data = 'edit')],
-            [InlineKeyboardButton('Риусем календарь!',      callback_data = 'calendar')],
+            [InlineKeyboardButton('Рисуем календарь!',      callback_data = 'calendar')],
             [InlineKeyboardButton('Ничего не хочу',         callback_data = 'stop')],
     ]
     await context.bot.send_message(

@@ -35,26 +35,18 @@ def _json_serializer(obj: Any) -> Any:
 async def get_or_create_user_key(user_id: int, conn):
     res = await conn.fetchrow('SELECT key FROM users WHERE id = $1;', user_id)
     if res and res['key']:
-        key_record = json.loads(res['key'])
-        user_key = encryption.decrypt_key(key_record)
-        return user_key
-    else:
-        user_key = encryption.generate_user_key()
-        key_record = encryption.encrypt_key(user_key)
-        await conn.execute('''
-            UPDATE users SET key = $2 WHERE id = $1;
-        ''', user_id, json.dumps(key_record))
-        return user_key
+        return encryption.decrypt_key(json.loads(res['key']))
+    user_key = encryption.generate_user_key()
+    key_record = encryption.encrypt_key(user_key)
+    await conn.execute('INSERT INTO users(id, key) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET key = EXCLUDED.key;', user_id, json.dumps(key_record))
+    return user_key
 
 async def set_birth(user_id: int, birth: str):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         user_key = await get_or_create_user_key(user_id, conn)
         enc = encryption.encrypt(birth.encode(), user_key)
-        await conn.execute('''
-            INSERT INTO users(id, birth) VALUES($1, $2)
-            ON CONFLICT (id) DO UPDATE SET birth = EXCLUDED.birth;
-        ''', user_id, json.dumps(enc))
+        await conn.execute('INSERT INTO users(id, birth) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET birth = EXCLUDED.birth;', user_id, json.dumps(enc))
     
 async def set_name(user_id: int, name: str):
     pool = await get_database_pool()
@@ -237,6 +229,8 @@ async def delete_data(user_id: int):
 async def set_expectation(user_id: int, value: int):
     if value < 55:
         value = 55
+    if value > 100:
+        value = 100
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         await conn.execute(
