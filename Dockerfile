@@ -1,29 +1,26 @@
-FROM python:3.11-slim
-ENV PYTHONUNBUFFERED=1
-
-# Create non-root user
-RUN addgroup --system app && adduser --system --ingroup app app
-
-WORKDIR /app
-
-# Install system dependencies for Node canvas
+FROM node:18-bookworm-slim AS js-build
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nodejs npm \
-    build-essential libcairo2-dev libjpeg-dev libpango1.0-dev libgif-dev librsvg2-dev \
+    python3 build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Python and Node dependencies
-COPY requirements.txt package.json ./
-RUN pip install --no-cache-dir -r requirements.txt && \
-    npm install --production && \
-    rm -rf /root/.npm
-
-# Copy application files
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev
 COPY . .
-RUN chown -R app:app /app
 
-USER app
+FROM python:3.11-slim-bookworm AS py-build
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s CMD pgrep -f bot.py || exit 1
-
+FROM python:3.11-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcairo2 libpango-1.0-0 libjpeg62-turbo libgif7 librsvg2-2 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=py-build /install /usr/local
+COPY --from=js-build /usr/local/bin/node /usr/local/bin/
+COPY --from=js-build /usr/local/bin/npm /usr/local/bin/
+COPY --from=js-build /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=js-build /app /app
+WORKDIR /app
+ENV PATH=/usr/local/bin:$PATH NODE_PATH=/usr/local/lib/node_modules
 CMD ["python", "bot.py"]

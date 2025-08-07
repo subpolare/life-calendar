@@ -1,3 +1,4 @@
+smth.ipynb
 __pycache__/
 handlers/__pycache__/
 style/
@@ -5,4 +6,3 @@ tmp/
 *.pyc
 .env
 .DS_Store
-node_modules/
