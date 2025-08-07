@@ -18,18 +18,21 @@ from utils.dbtools import init_pool, close_pool
 from datetime import datetime, timezone
 from functools import partial
 
-import telegram 
+import telegram
 from telegram import Update
 from telegram.request import HTTPXRequest
 from telegram.ext import (
-    ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes, 
+    ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes,
     ConversationHandler, CallbackQueryHandler, ChatJoinRequestHandler
 )
 
-import os, warnings
+import os, warnings, logging
 from dotenv import load_dotenv
 warnings.filterwarnings('ignore')
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 LIFE_BOT_TOKEN = os.getenv('LIFE_BOT_TOKEN')
 request = HTTPXRequest(
@@ -62,15 +65,17 @@ store = InviteStore()
 # ———————————————————————————————————————— INITIALIZING BOT ————————————————————————————————————————
 
 async def cancel(update: Update, context: ContextTypes. DEFAULT_TYPE):
+    logger.info('Conversation cancelled for user %s', update.effective_user.username)
     await update.message.reply_text('Хорошо, если передумаешь — я всегда тут')
     return ConversationHandler.END
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(context.error, telegram.error.Forbidden):
         return
-    print(f'Unhandled error: {context.error}')
+    logger.error('Unhandled error: %s', context.error)
 
 def main():
+    logger.info('Starting bot')
     application = (
         ApplicationBuilder()
         .token(LIFE_BOT_TOKEN)
@@ -80,7 +85,7 @@ def main():
         .build()
     )
     application.add_error_handler(error_handler)
-    print('✅ The bot has successfully launched and is working while you are drinking tea.')
+    logger.info('✅ The bot has successfully launched and is working while you are drinking tea.')
 
     start_conversation = ConversationHandler(
         entry_points = [CommandHandler('start', handle_start)],

@@ -1,13 +1,15 @@
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 
-import os, re, warnings
+import os, re, warnings, logging
 from dotenv import load_dotenv
 from utils.typing_task import keep_typing
 from utils.dbtools import get_user_data, set_name, set_birth, set_gender, user_exists
 
 warnings.filterwarnings('ignore')
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 DATABASE_URL       = os.getenv('DATABASE_URL')
 DATABASE_PORT      = os.getenv('DATABASE_PORT')
@@ -18,6 +20,7 @@ ME_ACTION, ME_NAME, ME_BIRTHDAY, ME_GENDER = range(4)
 
 @keep_typing
 async def handle_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info('User %s invoked /me', update.effective_user.username)
     exist = await user_exists(update.effective_user.id)
     if not exist:
         await context.bot.send_message(
@@ -58,6 +61,7 @@ async def me_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     answer = query.data
+    logger.info('User %s chose an option in /me', update.effective_user.username)
 
     await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
 
@@ -98,6 +102,7 @@ async def me_option(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @keep_typing
 async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await set_name(update.effective_user.id, update.message.text)
+    logger.info('User %s changed their name', update.effective_user.username)
 
     keyboard = [
         [InlineKeyboardButton('Имя', callback_data = 'name')],
@@ -116,6 +121,7 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @keep_typing
 async def change_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', update.message.text.strip()):
+        logger.warning('User %s provided invalid birthday format', update.effective_user.username)
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = 'Что-то не так с форматом даты. Пожалуйста, напиши её в формате ДД.ММ.ГГГГ',
@@ -124,6 +130,7 @@ async def change_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ME_BIRTHDAY
 
     await set_birth(update.effective_user.id, update.message.text.strip())
+    logger.info('User %s changed their birthday', update.effective_user.username)
 
     keyboard = [
         [InlineKeyboardButton('Имя', callback_data = 'name'), InlineKeyboardButton('Дату рождения', callback_data = 'birth')],
@@ -145,6 +152,7 @@ async def change_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
     await set_gender(update.effective_user.id, gender)
+    logger.info('User %s changed gender', update.effective_user.username)
 
     keyboard = [
         [InlineKeyboardButton('Имя', callback_data = 'name'), InlineKeyboardButton('Дату рождения', callback_data = 'birth')],

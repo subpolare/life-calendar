@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 
+const logger = console;
+
 const FONT_PATH = path.resolve('../fonts');
 registerFont(path.join(FONT_PATH, 'Montserrat-Bold.ttf'   ), { family: 'Montserrat', weight: '900'});
 registerFont(path.join(FONT_PATH, 'Montserrat-Black.ttf'  ), { family: 'Montserrat', weight: '700'});
@@ -32,6 +34,8 @@ export function createCalendar (birthday, opts = {}) {
     transparent    = false,
     outfile        = path.join(TMP_DIR, `${crypto.randomBytes(8).toString('hex')}.png`)
   } = opts;
+
+  logger.info('Creating calendar');
 
   const canvasH = PADDING_TOP + PADDING_BOTTOM + (lifeExpectancy + 1) * ROW_HEIGHT;
   const canvas  = createCanvas(CANVAS_W, canvasH);
@@ -145,6 +149,7 @@ export function createCalendar (birthday, opts = {}) {
 
   const outStream = fs.createWriteStream(outfile);
   canvas.createPNGStream().pipe(outStream);
+  logger.info(`Calendar saved to ${outfile}`);
   return outfile;
 }
 
@@ -153,4 +158,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const event    = [new Date(2016, 0, 10), new Date(2026, 11, 31)];
   const label    = 'Образование';
   createCalendar(birthday, { lifeExpectancy: 80, event, label });
+  logger.info('Sample calendar generated');
 }
