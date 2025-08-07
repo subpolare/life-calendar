@@ -5,10 +5,12 @@ from utils.typing_task import keep_typing
 from utils.dbtools import user_exists, get_user_data, delete_user
 
 from dotenv import load_dotenv
-import os, warnings, asyncio
+import os, warnings, asyncio, logging
 
 warnings.filterwarnings('ignore')
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 DATABASE_URL       = os.getenv('DATABASE_URL')
 DATABASE_PORT      = os.getenv('DATABASE_PORT')
@@ -19,6 +21,7 @@ DELETE_ACCOUNT = range(1)
 
 @keep_typing
 async def handle_oblivion(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info('User %s initiated oblivion', update.effective_user.username)
     exist = await user_exists(update.effective_user.id)
     if not exist:
         await context.bot.send_message(
@@ -48,6 +51,7 @@ async def oblivion_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     answer = query.data
+    logger.info('User %s answered oblivion prompt', update.effective_user.username)
 
     await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
     if answer == 'yes':
@@ -65,3 +69,4 @@ async def oblivion_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode = 'Markdown'
         )
         return ConversationHandler.END
+

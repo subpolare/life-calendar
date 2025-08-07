@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-import warnings, os, asyncio, random
+import warnings, os, asyncio, random, logging
 from utils.dbtools import user_exists
 from telegram.ext import ContextTypes
 from utils.typing_task import keep_typing
@@ -8,20 +8,20 @@ from datetime import datetime, timedelta, timezone
 warnings.filterwarnings('ignore')
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 COMMUNITY_ID = os.getenv('COMMUNITY_ID')
 
 # ———————————————————————————————————————— GATE KEEPER ————————————————————————————————————————
 
 async def gatekeeper(update: Update, context: ContextTypes.DEFAULT_TYPE, store = None):
     req: ChatJoinRequest = update.chat_join_request
-    
-    print(f'👀 I see someone trying to join: {req.invite_link.invite_link}')
+
+    logger.info('Join request from %s', req.from_user.username)
     ok_user = store.pop(req.invite_link.invite_link)
-    print(f'👀 That\'s who it is: {ok_user}') 
-    print(f'That\'s what I\'m waiting for: {req.from_user.id}')
 
     if ok_user == req.from_user.id:
-        print('✅ Accepted')
+        logger.info('Accepted join request for %s', req.from_user.username)
 
         emoji = random.choice(['🌼', '🌸', '🍀', '🌺', '🌳', '🍁', '🌲', '🍃', '🌷', '🌻', '🌱', '🌿', '💮', '🪴', '🌾', '🪻'])
         await context.bot.approve_chat_join_request(COMMUNITY_ID, req.from_user.id)
@@ -31,15 +31,15 @@ async def gatekeeper(update: Update, context: ContextTypes.DEFAULT_TYPE, store =
             parse_mode = 'HTML',
         )
     else:
-        print('❌ Rejected')
+        logger.info('Rejected join request for %s', req.from_user.username)
         await context.bot.decline_chat_join_request(COMMUNITY_ID, req.from_user.id)
 
 # ———————————————————————————————————————— COMMUNITY HANDLER ————————————————————————————————————————
 
 @keep_typing
 async def handle_community(update: Update, context: ContextTypes.DEFAULT_TYPE, store = None):
-    await asyncio.sleep(3) 
-    exist = await user_exists(update.effective_user.id) 
+    await asyncio.sleep(3)
+    exist = await user_exists(update.effective_user.id)
     if not exist:
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
@@ -56,14 +56,17 @@ async def handle_community(update: Update, context: ContextTypes.DEFAULT_TYPE, s
         link = invite.invite_link
         store.add(link, update.effective_user.id, expires)
 
+        logger.info('Generated invite link for user %s', update.effective_user.username)
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = f'Держи [ссылку]({link}) на наше закрытое комьюнити — она действует всего 5 минут (если не успеешь зайти, попроси еще одну — я поделюсь)',
             parse_mode = 'Markdown',
         )
-    except: 
+    except Exception as exc:
+        logger.error('Failed to generate invite link for user %s: %s', update.effective_user.username, exc)
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = f'Не получается сгенерировать ссылку :( Обратись в поддержку: мой создатель сам создаст ее специально для тебя',
             parse_mode = 'Markdown',
         )
+

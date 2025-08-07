@@ -4,7 +4,9 @@ from utils.life_calendar import create_calendar
 from utils.typing_task import keep_typing
 from telegram.ext import ContextTypes
 from datetime import date
-import secrets, os
+import secrets, os, logging
+
+logger = logging.getLogger(__name__)
 
 QUESTIONS = [
     {
@@ -52,6 +54,7 @@ QUESTIONS = [
 @keep_typing
 async def ask_habits_intro(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from handlers.handle_start import HABIT_INTRO
+    logger.info('Prompting user %s for habits intro', update.effective_user.username)
     keyboard = [[
         InlineKeyboardButton('Да', callback_data  = 'yes'),
         InlineKeyboardButton('Нет', callback_data = 'no')
@@ -69,6 +72,7 @@ async def habits_intro_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
     answer = query.data
+    logger.info('User %s answered habits intro', update.effective_user.username)
     await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
     
     if answer == 'yes':
@@ -82,6 +86,7 @@ async def habits_intro_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def _ask_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from handlers.handle_start import HABIT_Q
     idx = context.user_data.get('habit_idx', 0)
+    logger.info('Asking habit question for user %s', update.effective_user.username)
     if idx >= len(QUESTIONS):
         return await _finish_questions(update, context)
     q = QUESTIONS[idx]
@@ -107,6 +112,7 @@ async def habits_question_answer(update: Update, context: ContextTypes.DEFAULT_T
     idx = context.user_data.get('habit_idx', 0)
     q = QUESTIONS[idx]
     choice = int(query.data)
+    logger.info('User %s answered habit question', update.effective_user.username)
     context.user_data['delta'] = context.user_data.get('delta', 0) + q['options'][choice][1]
     context.user_data['habit_idx'] = idx + 1
     await context.bot.delete_message(chat_id=query.message.chat.id, message_id=query.message.message_id)
@@ -121,6 +127,7 @@ async def _finish_questions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gender = user.get('gender', 'male')
     base = 81 if gender == 'female' else 71
     expectation = max(55, base + delta)
+    logger.info('User %s finished habits questionnaire', update.effective_user.username)
     await set_expectation(update.effective_user.id, expectation)
     day, month, year = map(int, user['birth'].split('.'))
     birth = date(year, month, day)
@@ -142,3 +149,4 @@ async def _finish_questions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     from handlers.handle_start import finish_start
     return await finish_start(update, context)
+

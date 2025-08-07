@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from utils.dateparser import parse_dates
 from utils.typing_task import keep_typing
 from utils.life_calendar import create_calendar
-import asyncio, random, os, secrets, re, warnings
+import asyncio, random, os, secrets, re, warnings, logging
 from utils.dbtools import (
     set_birth, set_name, set_gender, get_user_data,
     set_empty_event, set_event, user_exists, delete_data
@@ -15,13 +15,16 @@ from utils.dbtools import (
 warnings.filterwarnings('ignore')
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 # ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
 ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, HABIT_INTRO, HABIT_Q, DELETE_DATA = range(10)
 
 @keep_typing
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    exist = await user_exists(update.effective_user.id) 
+    logger.info('User %s invoked /start', update.effective_user.username)
+    exist = await user_exists(update.effective_user.id)
     if exist: 
         user_data = await get_user_data(update.effective_user.id) 
         gender = user_data['gender']
@@ -37,8 +40,8 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup = InlineKeyboardMarkup(keyboard)
         )
         return DELETE_DATA 
-    else: 
-        print(f'⏳ I was activated by a user: {update.effective_user.id}')
+    else:
+        logger.info('New user %s started registration', update.effective_user.username)
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = f'Привет! Давай вместе соберём твой календарь жизни. Для этого мне нужно узнать о тебе кое-что.\n\n*Когда у тебя День рождения?* Напиши в формате ДД.ММ.ГГГГ, например, 01.09.1990', 
@@ -48,9 +51,10 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @keep_typing    
 async def clean_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query 
+    query = update.callback_query
     await query.answer()
     answer = query.data
+    logger.info('User %s chose to %s data', update.effective_user.username, 'clean' if answer == 'yes' else 'keep')
 
     if answer == 'yes':
         await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
@@ -68,6 +72,7 @@ async def clean_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @keep_typing
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', update.message.text.strip()):
+        logger.warning('User %s provided invalid birthday', update.effective_user.username)
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = f'Что-то не так с форматом даты. Пожалуйста, напиши дату ее в формате ДД.ММ.ГГГГ: например, 01.09.1990',
@@ -76,6 +81,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ASK_BIRTHDAY
     
     context.user_data['birthday'] = update.message.text
+    logger.info('User %s set birthday', update.effective_user.username)
     await set_birth(update.effective_user.id, context.user_data['birthday'])
     day, month, year = map(int, context.user_data['birthday'].split('.'))
     filename = f'tmp/{secrets.token_hex(8)}.png'

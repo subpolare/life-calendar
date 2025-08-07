@@ -3,19 +3,23 @@ from telegram.ext import ContextTypes
 from utils.dbtools import user_exists
 from dotenv import load_dotenv
 from telegram import Update
-import asyncio, warnings
+import asyncio, warnings, logging
 
 warnings.filterwarnings('ignore')
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 @keep_typing
 async def handle_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await asyncio.sleep(3) 
-    exist = await user_exists(update.effective_user.id) 
+    await asyncio.sleep(3)
+    logger.info('User %s requested help', update.effective_user.username)
+    exist = await user_exists(update.effective_user.id)
     if not exist:
+        logger.info('User %s is not registered for help command', update.effective_user.username)
         await context.bot.send_message(
             chat_id     = update.effective_chat.id,
-            text        = f'Чтобы использовать эту команду, тебе сначала нужно зарегестрироваться. Для этого нажми на /start', 
+            text        = f'Чтобы использовать эту команду, тебе сначала нужно зарегестрироваться. Для этого нажми на /start',
             parse_mode  = 'Markdown'
         )
     help_text = (

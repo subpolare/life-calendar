@@ -7,11 +7,13 @@ from datetime import date
 from dotenv import load_dotenv
 from utils.dateparser import parse_dates
 from utils.typing_task import keep_typing
-import os, warnings, asyncio, secrets, random
+import os, warnings, asyncio, secrets, random, logging
 from utils.life_calendar import create_calendar
 from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event, user_exists
 warnings.filterwarnings('ignore')
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 ACTION_TYPE, EVENT_NAME_POLL, EVENT_NAME_TEXT = range(3)
 MONTHS = {1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля', 5: 'мая', 6: 'июня', 7: 'июля', 8: 'августа', 9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря',}
@@ -51,7 +53,7 @@ def _to_event(obj):
 
 @keep_typing
 async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f'✍️ This user is trying to create a calendar: {update.effective_user.id}')
+    logger.info('User %s is creating a calendar', update.effective_user.username)
     await asyncio.sleep(3)
     exist = await user_exists(update.effective_user.id) 
     if not exist: 
@@ -82,9 +84,10 @@ async def handle_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @keep_typing
 async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query 
+    query = update.callback_query
     await query.answer()
     action = query.data
+    logger.info('User %s selected action %s', update.effective_user.username, action)
     await set_action(update.effective_user.id, action)
 
     user_data = await get_user_data(update.effective_user.id)
@@ -143,7 +146,8 @@ async def user_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @keep_typing
 async def add_new_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await asyncio.sleep(3)
-    answer = update.message.text 
+    answer = update.message.text
+    logger.info('User %s added a new event', update.effective_user.username)
 
     user_data = await get_user_data(update.effective_user.id)
     day, month, year = map(int, user_data['birth'].split('.'))
@@ -181,6 +185,7 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     action = await get_action(update.effective_user.id)
+    logger.info('Executing action %s for user %s', action, update.effective_user.username)
     if query.data != 'empty':
         index = int(query.data)
         events = await get_events(update.effective_user.id)
@@ -188,10 +193,9 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         item = events_sorted[index]
         event_type, event_dates = next(iter(item.items()))
 
-    if action == 'remove': 
+    if action == 'remove':
         await delete_event(update.effective_user.id, event_type, event_dates)
-        
-        
+        logger.info('Removed event for user %s', update.effective_user.username)
         await context.bot.send_message(
             chat_id      = update.effective_chat.id,
             text         = 'Хорошо, удалила!', 
@@ -199,9 +203,10 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return await handle_calendar(update, context)
     
-    elif action == 'edit': 
+    elif action == 'edit':
         await delete_event(update.effective_user.id, event_type, event_dates)
         name = event_type[0].lower() + event_type[1:] if event_type else event_type
+        logger.info('Editing event for user %s', update.effective_user.username)
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
             text       = (
@@ -213,7 +218,7 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return EVENT_NAME_TEXT
     
-    elif action == 'calendar': 
+    elif action == 'calendar':
         user_data = await get_user_data(update.effective_user.id)
         day, month, year = map(int, user_data['birth'].split('.'))
 
@@ -221,10 +226,11 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         female = user_data['gender'] == 'female'
         filename = f'tmp/{secrets.token_hex(8)}.png'
         
+        logger.info('Drawing calendar for user %s', update.effective_user.username)
         create_calendar(
-            birth, fname = filename, female = female, 
-            event = _to_event(event_dates) if query.data != 'empty' else None, 
-            label = event_type if query.data != 'empty' else None 
+            birth, fname = filename, female = female,
+            event = _to_event(event_dates) if query.data != 'empty' else None,
+            label = event_type if query.data != 'empty' else None
         )
         with open(filename, 'rb') as photo:
             if query.data != 'empty': 
@@ -251,3 +257,4 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             os.remove(filename)
         return ConversationHandler.END
+
