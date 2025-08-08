@@ -9,7 +9,10 @@ from utils.dateparser import parse_dates
 from utils.typing_task import keep_typing
 from lifecalendar.bridge import create_calendar
 import os, warnings, asyncio, secrets, random, logging
-from utils.dbtools import get_user_data, set_event, get_events, set_action, get_action, clear_action, delete_event, user_exists
+from utils.dbtools import (
+    get_user_data, set_event, get_events, set_action, get_action, 
+    clear_action, delete_event, user_exists, get_expectation
+)
 warnings.filterwarnings('ignore')
 load_dotenv()
 
@@ -220,6 +223,8 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif action == 'calendar':
         user_data = await get_user_data(update.effective_user.id)
+        expectation = await get_expectation(update.effective_user.id)
+        logger.info('EXPECTATION for user %s is ', expectation)
         day, month, year = map(int, user_data['birth'].split('.'))
 
         birth = date(year, month, day)
@@ -228,9 +233,12 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         logger.info('Drawing calendar for user %s', update.effective_user.username)
         create_calendar(
-            birth, fname = filename, female = female,
-            event = _to_event(event_dates) if query.data != 'empty' else None,
-            label = event_type if query.data != 'empty' else None
+            birthday    = birth, 
+            fname       = filename, 
+            female      = female,
+            event       = _to_event(event_dates) if query.data != 'empty' else None,
+            label       = event_type if query.data != 'empty' else None, 
+            expectation = str(expectation), 
         )
         with open(filename, 'rb') as photo:
             if query.data != 'empty': 
@@ -257,4 +265,3 @@ async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             os.remove(filename)
         return ConversationHandler.END
-

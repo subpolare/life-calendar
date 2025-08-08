@@ -215,10 +215,8 @@ async def user_exists(user_id: int):
     async with pool.acquire() as conn:
         row = await conn.fetchrow('SELECT name, birth, gender FROM users WHERE id = $1;', user_id)
         if not row:
-            
             return False
         filled = all(row[col] for col in ('name', 'birth', 'gender'))
-    
     return filled
 
 async def delete_data(user_id: int):
@@ -227,22 +225,23 @@ async def delete_data(user_id: int):
         await conn.execute('UPDATE users SET name = NULL, birth = NULL, gender = NULL, data = NULL WHERE id = $1;', user_id)
 
 async def set_expectation(user_id: int, value: int):
+    pool = await get_database_pool()
     if value < 55:
         value = 55
-    if value > 100:
+    elif value > 100:
         value = 100
-    pool = await get_database_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
-            'INSERT INTO users(id, expectation) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET expectation = EXCLUDED.expectation;',
-            user_id, value
-        )
+        user_key = await get_or_create_user_key(user_id, conn)
+        enc = encryption.encrypt(str(value).encode(), user_key)
+        await conn.execute('INSERT INTO users(id, expectation) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET expectation = EXCLUDED.expectation;', user_id, json.dumps(enc))
 
-async def get_expectation(user_id: int) -> int | None:
+async def get_expectation(user_id: int):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
-        row = await conn.fetchrow('SELECT expectation FROM users WHERE id = $1;', user_id)
-        return row['expectation'] if row else None
+        row = await conn.fetchrow('SELECT expectation, key FROM users WHERE id = $1;', user_id)
+        user_key = encryption.decrypt_key(json.loads(row['key']))
+        expectation = encryption.decrypt(json.loads(row['expectation']), user_key).decode()
+        return expectation
 
 async def delete_user(user_id: int):
     pool = await get_database_pool()

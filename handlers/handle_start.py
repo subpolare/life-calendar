@@ -23,9 +23,9 @@ ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, HABIT_INT
 
 @keep_typing
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info('User %s invoked /start', update.effective_user.username)
     exist = await user_exists(update.effective_user.id)
     if exist: 
+        logger.info('User %s invoked /start', update.effective_user.username)
         user_data = await get_user_data(update.effective_user.id) 
         gender = user_data['gender']
 
@@ -412,7 +412,7 @@ async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id    = update.effective_chat.id,
         text       = (
-            'А чтобы создавать новые календари с любыми событиями, нажми на /calendar. Если хочешь поменять какую-то информацию о себе, нажми на /me'
+            'Теперь ты можешь создавать свои собственные календари с любыми событиями из жизни. Для этого нажми на /calendar\n\nА если хочешь поменять какую-то информацию о себе, нажми на /me'
         ),
         parse_mode = 'Markdown',
     )

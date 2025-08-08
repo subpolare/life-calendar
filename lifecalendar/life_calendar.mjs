@@ -1,9 +1,21 @@
+// Дополнительные кружочки зеленым, а потерянные серым
+
 import { createCanvas, registerFont } from 'canvas';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 
-const logger = console;
+const logger = {
+  _fmt(level, msg) {
+    const ts = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    console.log(`${ts} ${level.toUpperCase()} life_calendar: ${msg}`);
+  },
+  info(msg)  { this._fmt('info',  msg); },
+  error(msg, err) {
+    const full = err ? `${msg} ${err.stack || err}` : msg;
+    this._fmt('error', full);
+  }
+};
 
 process.on('uncaughtException', err => {
   logger.error('Unhandled exception', err);

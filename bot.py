@@ -6,7 +6,7 @@ from handlers.handle_start import (
     handle_start, ask, ask_name, ask_gender, ask_type, ask_dates,
     create_second_calendar, clean_data, ask_more
 )
-from handlers.habits import ask_habits_intro, habits_intro_answer, habits_question_answer
+from handlers.habits import habits_intro_answer, habits_question_answer
 from handlers.handle_oblivion import DELETE_ACCOUNT, handle_oblivion, oblivion_answer
 from handlers.handle_community import handle_community, gatekeeper
 from handlers.handle_help import handle_help
@@ -18,7 +18,6 @@ from utils.dbtools import init_pool, close_pool
 from datetime import datetime, timezone
 from functools import partial
 
-import telegram
 from telegram import Update
 from telegram.request import HTTPXRequest
 from telegram.ext import (
@@ -27,18 +26,38 @@ from telegram.ext import (
 )
 
 from dotenv import load_dotenv
-import os, warnings, logging, sys
+import os, warnings, logging, sys, re 
 warnings.filterwarnings('ignore')
 load_dotenv()
 
-logging.basicConfig(
-    level    = logging.INFO,
-    format   = '%(asctime)s %(levelname)s %(name)s: %(message)s',
-    datefmt  = '%Y-%m-%d %H:%M:%S',
-    handlers = [logging.StreamHandler(sys.stdout)],
-    force    = True,
-)
+# ———————————————————————————————————————— LOGGING ————————————————————————————————————————
+
+class RedactTelegramToken(logging.Filter):
+    _url = re.compile(r'(https?://api\.telegram\.org/bot)\d+:[A-Za-z0-9_-]+', re.I)
+    _generic = re.compile(r'\b\d{6,}:[A-Za-z0-9_-]{20,}\b')
+    def filter(self, record):
+        msg = record.getMessage()
+        msg = self._url.sub(r'\1<REDACTED>', msg)
+        msg = self._generic.sub('<REDACTED>', msg)
+        record.msg, record.args = msg, ()
+        return True
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s', '%Y-%m-%d %H:%M:%S'))
+handler.addFilter(RedactTelegramToken())
+
+root = logging.getLogger()
+root.handlers.clear()
+root.addHandler(handler)
+root.setLevel(logging.INFO)
+
+for name in ('httpx', 'httpcore'):
+    logging.getLogger(name).setLevel(logging.WARNING)
+    logging.getLogger(name).propagate = False
+
 logger = logging.getLogger(__name__)
+
+# ———————————————————————————————————————— BEFORE START ————————————————————————————————————————
 
 LIFE_BOT_TOKEN = os.getenv('LIFE_BOT_TOKEN')
 request = HTTPXRequest(
@@ -75,10 +94,10 @@ async def cancel(update: Update, context: ContextTypes. DEFAULT_TYPE):
     await update.message.reply_text('Хорошо, если передумаешь — я всегда тут')
     return ConversationHandler.END
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
-    if isinstance(context.error, telegram.error.Forbidden):
-        return
-    logger.error('Unhandled error: %s', context.error)
+# async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+#     if isinstance(context.error, telegram.error.Forbidden):
+#         return
+#     logger.error('Unhandled error: %s', context.error)
 
 def main():
     logger.info('Starting bot')
@@ -90,8 +109,8 @@ def main():
         .request(request)
         .build()
     )
-    application.add_error_handler(error_handler)
-    logger.info('✅ The bot has successfully launched and is working while you are drinking tea.')
+    # application.add_error_handler(error_handler)
+    logger.info('The bot has successfully launched and is working while you are drinking tea.')
 
     start_conversation = ConversationHandler(
         entry_points = [CommandHandler('start', handle_start)],
