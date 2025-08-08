@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 smth.ipynb
+=======
+node_modules
+npm-debug.log
+>>>>>>> 58641eb2 (Update docker file with JavaScript blocks)
 .git
 __pycache__/
 *.py[cod]

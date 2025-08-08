@@ -1,7 +1,0 @@
-python-telegram-bot[httpx]>=20.0
-python-dotenv
-asyncpg
-cryptography
-numpy
-pillow
-matplotlib

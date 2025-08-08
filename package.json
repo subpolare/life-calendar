@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "life-calendar",
   "version": "1.0.0",
   "type": "module",
@@ -7,3 +8,9 @@
   }
 }
 
+=======
+  "dependencies": {
+    "canvas": "^3.1.2"
+  }
+}
+>>>>>>> 58641eb2 (Update docker file with JavaScript blocks)
