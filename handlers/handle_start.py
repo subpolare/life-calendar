@@ -408,6 +408,15 @@ async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode = 'Markdown',
     )
 
+    await asyncio.sleep(7)
+    await context.bot.send_message(
+        chat_id    = update.effective_chat.id,
+        text       = (
+            'А чтобы создавать новые календари с любыми событиями, нажми на /calendar. Если хочешь поменять какую-то информацию о себе, нажми на /me'
+        ),
+        parse_mode = 'Markdown',
+    )
+
     # await asyncio.sleep(3)
     # await context.bot.send_message(
     #     chat_id      = update.effective_chat.id,

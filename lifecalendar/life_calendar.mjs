@@ -5,9 +5,6 @@ import fs from 'fs';
 
 const logger = console;
 
-<<<<<<< HEAD:lifecalendar/life_calendar.mjs
-const FONT_PATH = path.resolve('../fonts');
-=======
 process.on('uncaughtException', err => {
   logger.error('Unhandled exception', err);
 });
@@ -16,8 +13,7 @@ process.on('unhandledRejection', err => {
   logger.error('Unhandled rejection', err);
 });
 
-const FONT_PATH = path.resolve('fonts');
->>>>>>> 58641eb2 (Update docker file with JavaScript blocks):calendar/life_calendar.mjs
+const FONT_PATH = path.resolve('../fonts');
 registerFont(path.join(FONT_PATH, 'Montserrat-Bold.ttf'   ), { family: 'Montserrat', weight: '900'});
 registerFont(path.join(FONT_PATH, 'Montserrat-Black.ttf'  ), { family: 'Montserrat', weight: '700'});
 registerFont(path.join(FONT_PATH, 'Montserrat-Regular.ttf'), { family: 'Montserrat', weight: '400'});
@@ -160,28 +156,15 @@ export function createCalendar (birthday, opts = {}) {
   }
 
   const outStream = fs.createWriteStream(outfile);
-<<<<<<< HEAD:lifecalendar/life_calendar.mjs
-  canvas.createPNGStream().pipe(outStream);
-  logger.info(`Calendar saved to ${outfile}`);
-=======
   outStream.on('error', err => logger.error('Error writing calendar', err));
   const stream = canvas.createPNGStream();
   stream.on('error', err => logger.error('Error generating PNG', err));
   stream.pipe(outStream);
   outStream.on('finish', () => logger.info(`Calendar saved to ${outfile}`));
->>>>>>> 58641eb2 (Update docker file with JavaScript blocks):calendar/life_calendar.mjs
   return outfile;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-<<<<<<< HEAD:lifecalendar/life_calendar.mjs
-  const birthday = new Date(2004, 0, 19);
-  const event    = [new Date(2016, 0, 10), new Date(2026, 11, 31)];
-  const label    = 'Образование';
-  createCalendar(birthday, { lifeExpectancy: 80, event, label });
-  logger.info('Sample calendar generated');
-}
-=======
   try {
     const birthday = new Date(2004, 0, 19);
     const event    = [new Date(2016, 0, 10), new Date(2026, 11, 31)];
@@ -192,4 +175,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     logger.error('Sample calendar generation failed', err);
   }
 }
->>>>>>> 58641eb2 (Update docker file with JavaScript blocks):calendar/life_calendar.mjs
