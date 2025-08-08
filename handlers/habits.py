@@ -132,7 +132,7 @@ async def _finish_questions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     day, month, year = map(int, user['birth'].split('.'))
     birth = date(year, month, day)
     filename = f'tmp/{secrets.token_hex(8)}.png'
-    create_calendar(birth, fname=filename, female=(gender=='female'), expectation=expectation)
+    create_calendar(birth, fname = filename, expectation = expectation)
     with open(filename, 'rb') as photo:
         await context.bot.send_document(
             chat_id=update.effective_chat.id,

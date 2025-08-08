@@ -9,12 +9,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CALENDAR_DIR = ROOT / 'lifecalendar'
 
 def create_calendar(
-    birthday: date, fname: str, female: bool = True, transparent: bool = False, life_expectancy = None, 
+    birthday: date, fname: str, female: bool = True, transparent: bool = False, expectation = None, 
     event: Union[Tuple[date, date], date, None] = None, label: Optional[str] = None
 ) -> str:
 
-    if not life_expectancy: 
-        life_expectancy = 80 if female else 70
+    if not expectation: 
+        expectation = 80 if female else 70
 
     if event:
         if isinstance(event, tuple):
@@ -29,7 +29,7 @@ def create_calendar(
         'import { createCalendar } from "./life_calendar.mjs";'
         f'const birthday = new Date("{birthday.isoformat()}");'
         'const opts={',
-        f'\tlifeExpectancy:{life_expectancy},',
+        f'\tlifeExpectancy:{expectation},',
         f'\tevent:{event_js},',
         f'\tlabel: {json.dumps(label) if label is not None else "null"},',
         f'\toutfile:{json.dumps(str(Path(fname).resolve()))},',

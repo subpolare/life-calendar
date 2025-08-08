@@ -11,7 +11,7 @@ from utils.dbtools import (
     set_birth, set_name, set_gender, get_user_data,
     set_empty_event, set_event, user_exists, delete_data
 )
-# from handlers.habits import ask_habits_intro, habits_intro_answer, habits_question_answer
+from handlers.habits import ask_habits_intro
 warnings.filterwarnings('ignore')
 load_dotenv()
 
@@ -237,8 +237,8 @@ async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ASK_TYPE
     else:
-        # return await ask_habits_intro(update, context)
-        return await finish_start(update, context)
+        return await ask_habits_intro(update, context)
+        # return await finish_start(update, context)
 
 @keep_typing
 async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -247,8 +247,8 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = query.data
     if answer == 'finish':
         await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
-        # return await ask_habits_intro(update, context)
-        return await finish_start(update, context)
+        return await ask_habits_intro(update, context)
+        # return await finish_start(update, context)
     user_data = await get_user_data(update.effective_user.id)
     gender = user_data.get('gender')
     if not gender:
@@ -392,8 +392,8 @@ async def ask_more(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if answer == 'more_yes':
         return await ask_event(update, context)
     else:
-        # return await ask_habits_intro(update, context)
-        return await finish_start(update, context)
+        return await ask_habits_intro(update, context)
+        # return await finish_start(update, context)
 
 @keep_typing
 async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
