@@ -5,7 +5,7 @@ from datetime import date
 from dotenv import load_dotenv
 from utils.dateparser import parse_dates
 from utils.typing_task import keep_typing
-from utils.life_calendar import create_calendar
+from lifecalendar.bridge import create_calendar
 import asyncio, random, os, secrets, re, warnings, logging
 from utils.dbtools import (
     set_birth, set_name, set_gender, get_user_data,
@@ -408,10 +408,10 @@ async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode = 'Markdown',
     )
 
-    await asyncio.sleep(3)
-    await context.bot.send_message(
-        chat_id      = update.effective_chat.id,
-        text         = 'Теперь ты можешь создавать свои собственные календари с любыми событиями из жизни. Для этого нажми на /calendar\n\nА еще вступай в наше закрытое комьюнити, для этого нажми на /community',
-        parse_mode   = 'Markdown',
-    )
+    # await asyncio.sleep(3)
+    # await context.bot.send_message(
+    #     chat_id      = update.effective_chat.id,
+    #     text         = 'Теперь ты можешь создавать свои собственные календари с любыми событиями из жизни. Для этого нажми на /calendar\n\nА еще вступай в наше закрытое комьюнити, для этого нажми на /community',
+    #     parse_mode   = 'Markdown',
+    # )
     return ConversationHandler.END

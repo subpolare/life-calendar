@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from utils.dbtools import set_expectation, get_user_data
-from utils.life_calendar import create_calendar
+from lifecalendar.bridge import create_calendar
 from utils.typing_task import keep_typing
 from telegram.ext import ContextTypes
 from datetime import date
