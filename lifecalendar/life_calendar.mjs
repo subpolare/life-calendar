@@ -8,7 +8,7 @@ import fs from 'fs';
 const logger = {
   _fmt(level, msg) {
     const ts = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    console.log(`${ts} ${level.toUpperCase()} life_calendar: ${msg}`);
+    console.log(`${ts} ${level.toUpperCase()} JavaScript Life calendar: ${msg}`);
   },
   info(msg)  { this._fmt('info',  msg); },
   error(msg, err) {

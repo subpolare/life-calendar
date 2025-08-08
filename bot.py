@@ -2,11 +2,15 @@ from handlers.handle_calendar import ACTION_TYPE, EVENT_NAME_POLL, EVENT_NAME_TE
 from handlers.handle_calendar import handle_calendar, user_action, add_new_event, action
 from handlers.handle_start import (
     ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE,
-    HABIT_INTRO, HABIT_Q, DELETE_DATA,
+    HABIT_INTRO, HABIT_Q, HABIT_EFFECTS, DELETE_DATA,
     handle_start, ask, ask_name, ask_gender, ask_type, ask_dates,
     create_second_calendar, clean_data, ask_more
 )
-from handlers.habits import habits_intro_answer, habits_question_answer
+from handlers.handle_habits import (
+    HABITS_WANT, HABITS_DECIDE, HABITS_PICK, HABITS_ASK,
+    handle_habits, habits_want_answer, habits_decide_answer, habits_pick_answer, habits_one_answer
+)
+from handlers.habits import habits_intro_answer, habits_question_answer, habits_effects_answer
 from handlers.handle_oblivion import DELETE_ACCOUNT, handle_oblivion, oblivion_answer
 from handlers.handle_community import handle_community, gatekeeper
 from handlers.handle_help import handle_help
@@ -115,16 +119,17 @@ def main():
     start_conversation = ConversationHandler(
         entry_points = [CommandHandler('start', handle_start)],
         states = {
-            ASK_BIRTHDAY : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
-            DELETE_DATA  : [CallbackQueryHandler(clean_data)],
-            ASK          : [CallbackQueryHandler(ask_name)],
-            ASK_NAME     : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
-            ASK_GENDER   : [CallbackQueryHandler(ask_type)],
-            ASK_TYPE     : [CallbackQueryHandler(ask_dates)],
-            ASK_DATE     : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
-            ASK_MORE     : [CallbackQueryHandler(ask_more)],
-            HABIT_INTRO : [CallbackQueryHandler(habits_intro_answer)],
-            HABIT_Q     : [CallbackQueryHandler(habits_question_answer)],
+            ASK_BIRTHDAY  : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
+            DELETE_DATA   : [CallbackQueryHandler(clean_data)],
+            ASK           : [CallbackQueryHandler(ask_name)],
+            ASK_NAME      : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
+            ASK_GENDER    : [CallbackQueryHandler(ask_type)],
+            ASK_TYPE      : [CallbackQueryHandler(ask_dates)],
+            ASK_DATE      : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
+            ASK_MORE      : [CallbackQueryHandler(ask_more)],
+            HABIT_INTRO   : [CallbackQueryHandler(habits_intro_answer)],
+            HABIT_Q       : [CallbackQueryHandler(habits_question_answer)],
+            HABIT_EFFECTS : [CallbackQueryHandler(habits_effects_answer)],
         },
         fallbacks = [CommandHandler('cancel', cancel)],
         allow_reentry = True
@@ -162,13 +167,25 @@ def main():
         allow_reentry = True
     )
 
-    application.add_handler(start_conversation)
-    application.add_handler(calendar_conversation)
+    habits_conversation = ConversationHandler(
+        entry_points = [CommandHandler('habits', handle_habits)],
+        states = {
+            HABITS_WANT   : [CallbackQueryHandler(habits_want_answer)],
+            HABITS_DECIDE : [CallbackQueryHandler(habits_decide_answer)],
+            HABITS_PICK   : [CallbackQueryHandler(habits_pick_answer)],
+            HABITS_ASK    : [CallbackQueryHandler(habits_one_answer)],
+        },
+        fallbacks = [],
+    )
+
     application.add_handler(me_conversation)
+    application.add_handler(start_conversation)
+    application.add_handler(habits_conversation)
+    application.add_handler(calendar_conversation)
     application.add_handler(oblivion_conversation)
-    application.add_handler(ChatJoinRequestHandler(partial(gatekeeper, store = store)))
-    application.add_handler(CommandHandler('community', partial(handle_community, store = store)))
     application.add_handler(CommandHandler('help', handle_help))
+    application.add_handler(CommandHandler('community', partial(handle_community, store = store)))
+    application.add_handler(ChatJoinRequestHandler(partial(gatekeeper, store = store)))
     application.run_polling()
 
 if __name__ == '__main__':

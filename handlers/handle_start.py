@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
-ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, HABIT_INTRO, HABIT_Q, DELETE_DATA = range(10)
+ASK_BIRTHDAY, ASK, ASK_NAME, ASK_GENDER, ASK_TYPE, ASK_DATE, ASK_MORE, HABIT_INTRO, HABIT_Q, HABIT_EFFECTS, DELETE_DATA = range(11)
 
 @keep_typing
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -370,10 +370,10 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
 
     await asyncio.sleep(3)
 
-    keyboard = [[
-        InlineKeyboardButton('Да', callback_data = 'more_yes'),
-        InlineKeyboardButton('Нет', callback_data = 'more_no')
-    ]]
+    keyboard = [
+        [InlineKeyboardButton('Конечно!', callback_data = 'more_yes')],
+        [InlineKeyboardButton('Лучше потом', callback_data = 'more_no')]
+    ]
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
         text         = 'Хочешь заполнить остальные? Это всегда можно сделать позже и добавить на календарь любые события.',

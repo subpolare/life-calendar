@@ -247,3 +247,53 @@ async def delete_user(user_id: int):
     pool = await get_database_pool()
     async with pool.acquire() as conn:
         await conn.execute('DELETE FROM users WHERE id = $1;', user_id)
+
+VALID_HABBIT_FIELDS = {'smoking', 'sleep', 'meat', 'sport', 'sugar', 'alcohol', 'food', 'air'}
+async def set_habbit(user_id: int, field: str, value: str):
+    if field not in VALID_HABBIT_FIELDS:
+        raise ValueError('invalid field')
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        sql = f'INSERT INTO habits(user_id, {field}) VALUES($1, $2) ON CONFLICT (user_id) DO UPDATE SET {field} = EXCLUDED.{field}'
+        await conn.execute(sql, user_id, value)
+
+VALID_HABIT_FIELDS = {'smoking', 'sleep', 'meat', 'sport', 'sugar', 'alcohol', 'food', 'air'}
+
+async def set_habit(user_id: int, field: str, value: str):
+    if field not in VALID_HABIT_FIELDS:
+        raise ValueError('invalid field')
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        user_key = await get_or_create_user_key(user_id, conn)
+        enc = encryption.encrypt(value.encode(), user_key)
+        sql = f'INSERT INTO habits(user_id, {field}) VALUES($1, $2) ON CONFLICT (user_id) DO UPDATE SET {field} = EXCLUDED.{field}'
+        await conn.execute(sql, user_id, json.dumps(enc))
+
+async def get_habits_list(user_id: int):
+    pool = await get_database_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            'SELECT h.smoking, h.sleep, h.meat, h.sport, h.sugar, h.alcohol, h.food, h.air, u.key '
+            'FROM habits h JOIN users u ON u.id = h.user_id WHERE h.user_id = $1',
+            user_id
+        )
+        if not row:
+            return []
+        user_key = encryption.decrypt_key(json.loads(row['key']))
+        fields = ('smoking', 'sleep', 'meat', 'sport', 'sugar', 'alcohol', 'food', 'air')
+        out = []
+        for f in fields:
+            v = row[f]
+            if not v:
+                continue
+            try:
+                dec = encryption.decrypt(json.loads(v), user_key).decode()
+                if dec:
+                    out.append(dec)
+            except Exception:
+                dec = str(v)
+                if dec:
+                    out.append(dec)
+                    enc = encryption.encrypt(dec.encode(), user_key)
+                    await conn.execute(f'UPDATE habits SET {f} = $2 WHERE user_id = $1', user_id, json.dumps(enc))
+        return out
