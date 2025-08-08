@@ -8,7 +8,7 @@ We only use articles from the [nature jornals](https://www.nature.com/siteindex)
 
 ## 🔮 Tech stack with sleek badge showcase
 
-⚙️ TL;DR: Python, JavaScript, Postgres, telegram bots
+⚙️ _**TL;DR: Python**, JavaScript, PostgreSQL, telegram bots_
 
 We try to keep our code simple and stupid, because we are not very smart ourselves, and the only developer is a bioinformatician. We used Python almost everywhere, but JavaScript was used to generate the calendar but in the future we want to rewrite [encryption](https://github.com/subpolare/life-calendar/blob/main/security/encryption.py) in Go (for educational purposes). The database is built in PostgreSQL.
 
