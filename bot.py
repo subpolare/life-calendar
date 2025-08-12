@@ -119,11 +119,11 @@ def main():
     start_conversation = ConversationHandler(
         entry_points = [CommandHandler('start', handle_start)],
         states = {
-            ASK_BIRTHDAY  : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask)],
+            ASK_BIRTHDAY  : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
             DELETE_DATA   : [CallbackQueryHandler(clean_data)],
-            ASK           : [CallbackQueryHandler(ask_name)],
-            ASK_NAME      : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_gender)],
-            ASK_GENDER    : [CallbackQueryHandler(ask_type)],
+            ASK_GENDER    : [CallbackQueryHandler(ask)],
+            ASK           : [CallbackQueryHandler(ask_name)], 
+            ASK_NAME      : [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_type)],
             ASK_TYPE      : [CallbackQueryHandler(ask_dates)],
             ASK_DATE      : [MessageHandler(filters.TEXT & ~filters.COMMAND, create_second_calendar)],
             ASK_MORE      : [CallbackQueryHandler(ask_more)],

@@ -11,6 +11,7 @@ from utils.dbtools import (
     set_birth, set_name, set_gender, get_user_data,
     set_empty_event, set_event, user_exists, delete_data
 )
+from handlers.handle_calendar import PHRASES
 from handlers.habits import ask_habits_intro
 warnings.filterwarnings('ignore')
 load_dotenv()
@@ -70,7 +71,7 @@ async def clean_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
 @keep_typing
-async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', update.message.text.strip()):
         logger.warning('User %s provided invalid birthday', update.effective_user.username)
         await context.bot.send_message(
@@ -79,14 +80,9 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode = 'Markdown'
         )
         return ASK_BIRTHDAY
-    
-    context.user_data['birthday'] = update.message.text
-    logger.info('User %s set birthday', update.effective_user.username)
-    await set_birth(update.effective_user.id, context.user_data['birthday'])
-    day, month, year = map(int, context.user_data['birthday'].split('.'))
-    filename = f'tmp/{secrets.token_hex(8)}.png'
     try: 
-        birth = date(year, month, day)
+        day, month, year = map(int, update.message.text.strip().split('.'))
+        _ = date(year, month, day)
     except: 
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
@@ -94,7 +90,46 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode = 'Markdown'
         )
         return ASK_BIRTHDAY
-    create_calendar(date(year, month, day), fname = filename, female = False)
+    
+    logger.info('User %s set birthday', update.effective_user.username)
+    await set_birth(update.effective_user.id, update.message.text)
+    await context.bot.send_message(
+        chat_id      = update.effective_chat.id,
+        text         = f'Записала', 
+        parse_mode   = 'Markdown'
+    )
+    await asyncio.sleep(random.uniform(1, 3))
+
+    keyboard = [[
+        InlineKeyboardButton('Парень', callback_data = 'male'),
+        InlineKeyboardButton('Девушка', callback_data = 'female')
+    ]]
+
+    await context.bot.send_message(
+        chat_id      = update.effective_chat.id,
+        text         = f'Извини за вопрос, но ты парень или девушка? Отвечай честно: это нужно для твоего календаря.', 
+        parse_mode   = 'Markdown', 
+        reply_markup = InlineKeyboardMarkup(keyboard)
+    )
+    return ASK_GENDER
+
+@keep_typing
+async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query 
+    await query.answer()
+    gender = query.data
+
+    await context.bot.delete_message(
+        chat_id    = query.message.chat.id,
+        message_id = query.message.message_id
+    )
+    context.user_data['gender'] = gender
+    await set_gender(update.effective_user.id, context.user_data['gender'])
+
+    user_data = await get_user_data(update.effective_user.id) 
+    day, month, year = map(int, user_data['birth'].split('.'))
+    filename = f'tmp/{secrets.token_hex(8)}.png'
+    create_calendar(date(year, month, day), filename, female = gender)  
 
     with open(filename, 'rb') as photo:
         await context.bot.send_document(
@@ -103,7 +138,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он про среднего человека в России, но хочется сделать его лично для тебя', 
             parse_mode = 'Markdown'
         )
-    
+
     os.remove(filename)
     keyboard = [[
         InlineKeyboardButton('Конечно!', callback_data = 'yes'),
@@ -146,70 +181,20 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode  = 'Markdown'
         )
         return ConversationHandler.END
-
-@keep_typing
-async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await asyncio.sleep(random.uniform(1, 3))
-    context.user_data['name'] = update.message.text
-    await set_name(update.effective_user.id, context.user_data['name'])
-
-    keyboard = [[
-        InlineKeyboardButton('Парень', callback_data = 'male'),
-        InlineKeyboardButton('Девушка', callback_data = 'female')
-    ]]
     
-    await context.bot.send_message(
-        chat_id      = update.effective_chat.id,
-        text         = f'Рада познакомиться, {context.user_data["name"]}! Извини за вопрос, но ты парень или девушка? Отвечай честно: это нужно для твоего календаря.', 
-        parse_mode   = 'Markdown', 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-    )
-    return ASK_GENDER
-
 @keep_typing
 async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query 
-    await query.answer()
-    gender = query.data
-
-    await context.bot.delete_message(
-        chat_id    = query.message.chat.id,
-        message_id = query.message.message_id
-    )
-    context.user_data['gender'] = gender
-    await set_gender(update.effective_user.id, context.user_data['gender'])
-
-    if gender == 'male':
-        await context.bot.send_message(
-            chat_id      = update.effective_chat.id,
-            text         = 'Отлично! Теперь я готова создать календарь лично для тебя.',
-            parse_mode   = 'Markdown', 
-        )
-    else:  
-        await context.bot.send_message(
-            chat_id      = update.effective_chat.id,
-            text         = 'Тебе повезло! Тот факт, что ты девушка, разблокировал в твоем календаре сразу 10 лишних строк!', 
-            parse_mode   = 'Markdown', 
-        )
-        user_data = await get_user_data(update.effective_user.id) 
-        day, month, year = map(int, user_data['birth'].split('.'))
-        filename = f'tmp/{secrets.token_hex(8)}.png'
-        create_calendar(date(year, month, day), filename, female = True)  
-
-        with open(filename, 'rb') as photo:
-            await context.bot.send_document(
-                chat_id    = update.effective_chat.id,
-                document   = photo,
-                caption    = f'Вот твой новый календарик: на 12% длиннее, чем был. Теперь давай сделаем его еще точнее и добавим события из твоей жизни.', 
-                parse_mode = 'Markdown'
-            )
-        os.remove(filename)
+    name = update.message.text
+    await set_name(update.effective_user.id, name)
     return await ask_event(update, context)
 
 @keep_typing
 async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    gender = context.user_data.get('gender', 'male')
+    await asyncio.sleep(random.uniform(1, 3))
+    user_data = await get_user_data(update.effective_user.id) 
+    gender = user_data.get('gender')
     added = context.user_data.get('added_events', set())
+
     keyboard = []
     row1 = []
     if 'education' not in added:
@@ -228,7 +213,7 @@ async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if added:
         keyboard.append([InlineKeyboardButton('Давай закончим', callback_data = 'finish')])
 
-    if keyboard:
+    if len(added) == 0: 
         await context.bot.send_message(
             chat_id      = update.effective_chat.id,
             text         = f'Что хочешь добавить? Давай начнем с чего-то одного, чтобы ты научил{"ась" if gender == "female" else "ся"} создавать свои календари сам{"а" if gender == "female" else ""}',
@@ -236,6 +221,20 @@ async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup = InlineKeyboardMarkup(keyboard)
         )
         return ASK_TYPE
+    
+    elif len(keyboard) == 1: 
+        return await ask_habits_intro(update, context) 
+        # return await finish_start(update, context)
+
+    elif keyboard:
+        await context.bot.send_message(
+            chat_id      = update.effective_chat.id,
+            text         = f'Что еще хочешь добавить? Чуть позже научу тебя добавлять любые события уже без моих подсказок',
+            parse_mode   = 'Markdown',
+            reply_markup = InlineKeyboardMarkup(keyboard)
+        )
+        return ASK_TYPE
+    
     else:
         return await ask_habits_intro(update, context)
         # return await finish_start(update, context)
@@ -294,10 +293,10 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     event_key = context.user_data.get('event_type')
     key_map = {
-        'education': 'Образование',
-        'school': 'Школа',
-        'smoking': 'Курение',
-        'job': 'Работа'
+        'education' : 'Образование',
+        'school'    : 'Школа',
+        'smoking'   : 'Курение',
+        'job'       : 'Работа'
     }
     event_type = key_map.get(event_key)
     answer = update.message.text
@@ -346,10 +345,10 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
 
     await set_event(update.effective_user.id, event_type, event)
     key_map = {
-        'Образование': 'education',
-        'Школа': 'school',
-        'Курение': 'smoking',
-        'Работа': 'job'
+        'Образование' : 'education',
+        'Школа'       : 'school',
+        'Курение'     : 'smoking',
+        'Работа'      : 'job'
     }
     ev_key = key_map.get(event_type)
     if ev_key:
@@ -363,7 +362,7 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
         await context.bot.send_document(
             chat_id    = update.effective_chat.id,
             document   = photo,
-            caption    = f'Нанесла даты на календарь — смотри, как это выглядит в масштабах твоей жизни. ',
+            caption    = random.choice(PHRASES),
             parse_mode = 'Markdown'
         )
         os.remove(filename)
