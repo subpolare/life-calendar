@@ -175,7 +175,8 @@ def main():
             HABITS_PICK   : [CallbackQueryHandler(habits_pick_answer)],
             HABITS_ASK    : [CallbackQueryHandler(habits_one_answer)],
         },
-        fallbacks = [],
+        fallbacks = [CommandHandler('cancel', cancel)],
+        allow_reentry = True
     )
 
     application.add_handler(me_conversation)
