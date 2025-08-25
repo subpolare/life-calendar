@@ -36,11 +36,16 @@ const PADDING_TOP    = 300;
 const PADDING_BOTTOM = 60;
 const ROW_HEIGHT     = 25;
 
+const FINAL_W = 2160;
+const FINAL_H = 3840;
+
 const COLORS = {
   done:    '#D0783B',
   outline: '#b0b7d0',
   during:  '#EECE7B',
-  text:    '#120C0B'
+  text:    '#120C0B', 
+  extra:   '#A8E6A1',
+  missing: '#E5E7EB'
 };
 
 const TMP_DIR = path.resolve('../tmp');
@@ -49,6 +54,7 @@ if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 export function createCalendar (birthday, opts = {}) {
   const {
     lifeExpectancy = 80,
+    female         = true,
     event          = null,
     label          = '',
     transparent    = false,
@@ -57,9 +63,11 @@ export function createCalendar (birthday, opts = {}) {
 
   logger.info('Creating calendar');
 
-  const canvasH = PADDING_TOP + PADDING_BOTTOM + (lifeExpectancy + 1) * ROW_HEIGHT;
-  const canvas  = createCanvas(CANVAS_W, canvasH);
-  const ctx     = canvas.getContext('2d');
+  const baseExpectancy = female ? 80 : 70;
+  const rowsYears      = Math.max(baseExpectancy, lifeExpectancy);
+  const canvasH        = PADDING_TOP + PADDING_BOTTOM + (rowsYears + 1) * ROW_HEIGHT;
+  const canvas         = createCanvas(CANVAS_W, canvasH);
+  const ctx            = canvas.getContext('2d');
 
   if (!transparent) {
     ctx.fillStyle = 'white';
@@ -82,20 +90,31 @@ export function createCalendar (birthday, opts = {}) {
   }
 
   let weekNumber = 0;
-  for (let y = 0; y < lifeExpectancy + 1; y++) {
-    const yPix = PADDING_TOP + y * ROW_HEIGHT + ROW_HEIGHT / 2;
+  for (let y = 0; y < rowsYears + 1; y++) { 
+    const yPix          = PADDING_TOP + y * ROW_HEIGHT + ROW_HEIGHT / 2;
+    const isExtraZone   = lifeExpectancy > baseExpectancy && y >= baseExpectancy && y <= lifeExpectancy;
+    const isMissingZone = lifeExpectancy < baseExpectancy && y >= lifeExpectancy && y <= baseExpectancy;
 
     for (let w = 0; w < 52; w++) {
-      const x = PADDING_X + w * weekDX + weekDX / 2
+      const x = PADDING_X + w * weekDX + weekDX / 2;
       weekNumber += 1;
 
       let fc = 'white';
       let ec = COLORS.outline;
-      if (weekNumber <= lifeWeeks) fc = ec = COLORS.done;
+      const isPast = (weekNumber <= lifeWeeks);
+      if (isPast) fc = ec = COLORS.done;
 
       if (eventStartWeek !== null && weekNumber >= eventStartWeek && weekNumber <= eventEndWeek) {
         ec = COLORS.during;
-        if (weekNumber <= lifeWeeks) fc = COLORS.during;
+        if (isPast) fc = COLORS.during;
+      }
+
+      if (!isPast) {
+        if (isExtraZone) {
+          ec = COLORS.extra;
+        } else if (isMissingZone) {
+          ec = COLORS.missing;
+        }
       }
 
       ctx.lineWidth = 2.5;
@@ -108,7 +127,7 @@ export function createCalendar (birthday, opts = {}) {
     }
   }
 
-  for (let y = 0; y <= lifeExpectancy; y++) {
+  for (let y = 0; y < rowsYears + 1; y++) { 
     const yPix = PADDING_TOP + y * ROW_HEIGHT + ROW_HEIGHT / 2;
     ctx.fillStyle = COLORS.text;
     ctx.font = (y % 10 === 0 ? '900 18px' : '16px') + ' Montserrat';
@@ -167,12 +186,32 @@ export function createCalendar (birthday, opts = {}) {
     ctx.restore();
   }
 
+  const finalCanvas = createCanvas(FINAL_W, FINAL_H);
+  const fctx = finalCanvas.getContext('2d');
+
+  fctx.fillStyle = 'white';
+  fctx.fillRect(0, 0, FINAL_W, FINAL_H);
+
+  const srcW = CANVAS_W;
+  const srcH = canvasH;
+
+  const scale = Math.min(FINAL_W / srcW, FINAL_H / srcH);
+  const drawW = Math.round(srcW * scale);
+  const drawH = Math.round(srcH * scale);
+
+  const offsetX = Math.floor((FINAL_W - drawW) / 2);
+  const offsetY = Math.floor((FINAL_H - drawH) / 2);
+
+  fctx.imageSmoothingEnabled = true;
+  fctx.imageSmoothingQuality = 'high';
+
+  fctx.drawImage(canvas, 0, 0, srcW, srcH, offsetX, offsetY, drawW, drawH);
+
   const outStream = fs.createWriteStream(outfile);
   outStream.on('error', err => logger.error('Error writing calendar', err));
-  const stream = canvas.createPNGStream();
-  stream.on('error', err => logger.error('Error generating PNG', err));
-  stream.pipe(outStream);
-  outStream.on('finish', () => logger.info(`Calendar saved to ${outfile}`));
+  finalCanvas.createPNGStream().on('error', err => logger.error('Error generating PNG', err))
+                              .pipe(outStream);
+  outStream.on('finish', () => logger.info(`Calendar saved to ${outfile} (2160x3840)`));
   return outfile;
 }
 

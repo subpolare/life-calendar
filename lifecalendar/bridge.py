@@ -29,10 +29,13 @@ def create_calendar(
         'import { createCalendar } from "./life_calendar.mjs";'
         f'const birthday = new Date("{birthday.isoformat()}");'
         'const opts={',
+
         f'\tlifeExpectancy:{expectation},',
+        f'\tfemale:{str(female).lower()},',
         f'\tevent:{event_js},',
         f'\tlabel: {json.dumps(label) if label is not None else "null"},',
         f'\toutfile:{json.dumps(str(Path(fname).resolve()))},',
+        
         '};',
         'createCalendar(birthday, opts);'
     ])
