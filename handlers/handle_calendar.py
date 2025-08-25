@@ -188,7 +188,7 @@ async def add_new_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.callback_query.message if update.callback_query else update.effective_message
     try:
-        await context.bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
+        await context.bot.delete_message(chat_id = msg.chat.id, message_id = msg.message_id)
     except telegram.error.TelegramError:
         pass
     await asyncio.sleep(3)

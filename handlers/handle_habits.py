@@ -263,7 +263,7 @@ async def habits_one_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return HABITS_DECIDE
 
 @keep_typing
-async def habits_effects_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def habits_effects_answer_2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
@@ -284,8 +284,6 @@ async def habits_effects_answer(update: Update, context: ContextTypes.DEFAULT_TY
     await context.bot.send_message(chat_id = query.message.chat.id, text = 'Хочешь узнать про другие привычки?', reply_markup = _more_keyboard())
     return HABITS_EFFECTS_DECIDE 
 
-# Почему-то не работает... 
-
 @keep_typing
 async def habits_decide(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -293,6 +291,7 @@ async def habits_decide(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = query.data
 
     if answer == 'more_yes':
+        await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
         await context.bot.send_message(
             chat_id = update.effective_chat.id,
             text = 'Про какую привычку мне рассказать?',
