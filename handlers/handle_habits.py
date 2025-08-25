@@ -1,13 +1,14 @@
+from handlers.habits import HABIT_FIELDS, QUESTIONS, _habit_value, EFFECTS_TEXTS, _effects_keyboard, _more_keyboard
 from utils.dbtools import get_user_data, get_habits_list, set_habit, set_expectation, get_expectation
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
-from handlers.habits import HABIT_FIELDS, QUESTIONS, _habit_value
+from telegram.constants import ChatAction
 from utils.typing_task import keep_typing
-import logging 
+import logging, asyncio
 
 logger = logging.getLogger(__name__) 
 
-HABITS_WANT, HABITS_DECIDE, HABITS_PICK, HABITS_ASK = range(4)
+HABITS_WANT, HABITS_DECIDE, HABITS_PICK, HABITS_ASK, HABBITS_EFFECTS, HABITS_EFFECTS_DECIDE = range(6)
 
 E2I = {
     'eff_smoking' : 0,
@@ -30,6 +31,7 @@ def _decide_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton('Хочу поменять кое-что одно', callback_data = 'habits_one')],
         [InlineKeyboardButton('Хочу заново ответить на вопросы', callback_data = 'habits_retake')],
+        [InlineKeyboardButton('Хочу узнать про их влияние', callback_data = 'habits_science')],
         [InlineKeyboardButton('Ничего не меняем', callback_data = 'habits_none')],
     ])
 
@@ -168,6 +170,14 @@ async def habits_decide_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.message.reply_text('Что именно ты хочешь поменять?', reply_markup = _pick_keyboard(female = female))
         return HABITS_PICK
     
+    if query.data == 'habits_science': 
+        await context.bot.send_message(
+            chat_id = update.effective_chat.id,
+            text = 'Про какую привычку мне рассказать?',
+            reply_markup = _effects_keyboard()
+        )
+        return HABBITS_EFFECTS
+    
     if query.data == 'habits_none':
         await _recalc_expectation(update)
         return ConversationHandler.END
@@ -251,3 +261,51 @@ async def habits_one_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode = 'Markdown'
     )
     return HABITS_DECIDE
+
+@keep_typing
+async def habits_effects_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
+    await asyncio.sleep(5)
+    text = EFFECTS_TEXTS.get(query.data, '')
+    if text:
+        await context.bot.send_message(
+            chat_id = query.message.chat.id, 
+            text    = text, 
+            parse_mode   = 'Markdown'
+        )
+        await context.bot.send_chat_action(
+            chat_id = update.effective_chat.id, 
+            action  = ChatAction.TYPING
+        )
+        await asyncio.sleep(3)
+    await context.bot.send_message(chat_id = query.message.chat.id, text = 'Хочешь узнать про другие привычки?', reply_markup = _more_keyboard())
+    return HABITS_EFFECTS_DECIDE 
+
+# Почему-то не работает... 
+
+@keep_typing
+async def habits_decide(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    answer = query.data
+
+    if answer == 'more_yes':
+        await context.bot.send_message(
+            chat_id = update.effective_chat.id,
+            text = 'Про какую привычку мне рассказать?',
+            reply_markup = _effects_keyboard()
+        )
+        return HABBITS_EFFECTS
+    
+    if answer == 'more_no': 
+        await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
+        await asyncio.sleep(3)
+        await context.bot.send_message(
+            chat_id     = update.effective_chat.id,
+            text        = 'Буду ждать, пока ты вернешься! Нажми /habits, если захочешь почитать про другие привычки' , 
+            parse_mode  = 'Markdown'
+        )
+        return ConversationHandler.END 

@@ -1,3 +1,4 @@
+from telegram.constants import ChatAction
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -11,12 +12,38 @@ from utils.dbtools import (
     set_birth, set_name, set_gender, get_user_data,
     set_empty_event, set_event, user_exists, delete_data
 )
-from handlers.handle_calendar import PHRASES
 from handlers.habits import ask_habits_intro
 warnings.filterwarnings('ignore')
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+def _get_events(gender):
+    events = [
+        {(0, 22) : [
+            {'key' : 'education',    'label' : 'Образование', 'button' : 'Школу + университет', 'message' : f'*Когда ты начал{"а" if gender == "female" else ""} учиться, а когда закончил{"а" if gender == "female" else ""}?* Выбери любой удобный формат ответа, вот пара примеров:\n\n~ С 7 до 22 лет\n~ С сентября 2011 до июня 2028\n~ С 01.09.2011 до 22.06.2028'},
+            {'key' : 'school',       'label' : 'Школа',       'button' : 'Только школу',        'message' : f'*Когда ты пош{"ла" if gender == "female" else "ел"} и когда закончил{"а" if gender == "female" else ""} ее?* Выбери любой удобный формат ответа, вот пара примеров:\n\n~ С 7 до 18 лет\n~ С сентября 2011 до июня 2022\n~ С 01.09.2011 до 22.06.2022'},
+            {'key' : 'job',          'label' : 'Работа',      'button' : 'Сколько я работаю',   'message' : f'*Когда ты впервые начал{"а" if gender == "female" else ""} работать?* Выбери любой удобный формат ответа, вот пара примеров:\n\n~ В 13 лет\n~ В 13 с половиной лет\n~ С 13 до 21\n~ В июне 2017'},
+            {'key' : 'smoking',      'label' : 'Курение',     'button' : 'Сколько я уже курю',  'message' : f'*Когда ты начал{"а" if gender == "female" else ""} курить?* Выбери любой удобный формат ответа, вот пара примеров:\n\n~ В 13 лет\n~ В 13 с половиной лет\n~ С 13 до 21\n~ С июня 2017 до августе 2009'},
+            {'key' : 'relationship', 'label' : 'Отношения',   'button' : 'Мои отношения',       'message' : f'*Когда начались твои отношения? Если они закончились, то напиши, когда это было.* Выбери любой удобный формат ответа, вот пара примеров:\n\n~ С 09.08.2024\n~ С 9 августа 2024\n~ С октября 2015 до января 2017'}
+        ]},
+    ]
+    return events 
+
+PHRASES = [
+    'Отметила все на календаре — смотри, как это смотрится в масштабе твоей жизни',
+    'Смотри, как это выглядит в рамках твоей жизни', 
+    'Нанесла даты на календарь', 
+    'Смотри — выглядит как полноценная часть твоей жизни', 
+    'Нарисовала твой новый календарь', 
+]
+
+def _get_age(birth_date: date) -> int:
+    today = date.today()
+    age = today.year - birth_date.year
+    if (today.month, today.day) < (birth_date.month, birth_date.day):
+        age -= 1
+    return age
 
 # ———————————————————————————————————————— START HANDLERS ————————————————————————————————————————
 
@@ -72,17 +99,13 @@ async def clean_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @keep_typing
 async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', update.message.text.strip()):
-        logger.warning('User %s provided invalid birthday', update.effective_user.username)
-        await context.bot.send_message(
-            chat_id    = update.effective_chat.id,
-            text       = f'Что-то не так с форматом даты. Пожалуйста, напиши дату ее в формате ДД.ММ.ГГГГ: например, 01.09.1990',
-            parse_mode = 'Markdown'
-        )
-        return ASK_BIRTHDAY
     try: 
         day, month, year = map(int, update.message.text.strip().split('.'))
-        _ = date(year, month, day)
+        if (date.today() - date(year, month, day)).days / 365.25 > 120:
+            raise ValueError
+        if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', update.message.text.strip()): 
+            logger.warning('User %s provided invalid birthday', update.effective_user.username)
+            raise ValueError
     except: 
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
@@ -98,7 +121,11 @@ async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text         = f'Записала', 
         parse_mode   = 'Markdown'
     )
-    await asyncio.sleep(random.uniform(1, 3))
+    await context.bot.send_chat_action(
+        chat_id = update.effective_chat.id, 
+        action  = ChatAction.TYPING
+    )
+    await asyncio.sleep(3)
 
     keyboard = [[
         InlineKeyboardButton('Парень', callback_data = 'male'),
@@ -107,7 +134,7 @@ async def ask_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
-        text         = f'Извини за вопрос, но ты парень или девушка? Отвечай честно: это нужно для твоего календаря.', 
+        text         = f'*Извини за вопрос, но ты парень или девушка?* Отвечай честно: это нужно для твоего календаря.', 
         parse_mode   = 'Markdown', 
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
@@ -138,13 +165,17 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption    = f'Держи свой первый календарь жизни. Скинула файлом, чтобы было видно все детали.\n\nПока он про среднего человека в России, но хочется сделать его лично для тебя', 
             parse_mode = 'Markdown'
         )
+    await context.bot.send_chat_action(
+        chat_id = update.effective_chat.id, 
+        action  = ChatAction.TYPING
+    )
 
     os.remove(filename)
     keyboard = [[
         InlineKeyboardButton('Конечно!', callback_data = 'yes'),
         InlineKeyboardButton('Нет, но я вернусь', callback_data = 'no')
     ]]
-    await asyncio.sleep(random.uniform(1, 3))
+    await asyncio.sleep(5)
     
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
@@ -165,7 +196,7 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message_id = query.message.message_id
     )
 
-    await asyncio.sleep(random.uniform(1, 3))
+    await asyncio.sleep(3)
     if answer == 'yes':  
         text = 'Тогда начнем со знакомства. Как тебя зовут?'
         await context.bot.send_message(
@@ -190,54 +221,54 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @keep_typing
 async def ask_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await asyncio.sleep(random.uniform(1, 3))
-    user_data = await get_user_data(update.effective_user.id) 
+    await asyncio.sleep(3)
+    user_data = await get_user_data(update.effective_user.id)
+    day, month, year = map(int, user_data['birth'].split('.'))
     gender = user_data.get('gender')
-    added = context.user_data.get('added_events', set())
+
+    age = _get_age(date(year, month, day))
+    events = _get_events(gender)
+
+    for age_range in events:
+        for key, events in age_range.items():
+            if key[0] <= age <= key[1]:
+                break
+
+    sample = random.sample(events, k = min(5, len(events)))
+    available_events = [e for e in sample if e['key'] not in context.user_data.get('added_events', set())]
 
     keyboard = []
-    row1 = []
-    if 'education' not in added:
-        row1.append(InlineKeyboardButton('Школу + университет', callback_data = 'education'))
-    if row1:
-        keyboard.append(row1)
-    row2 = []
-    if 'school' not in added:
-        row2.append(InlineKeyboardButton('Только школу', callback_data = 'school'))
-    if 'job' not in added:
-        row2.append(InlineKeyboardButton('Работу', callback_data = 'job'))
-    if row2:
-        keyboard.append(row2)
-    if 'smoking' not in added:
-        keyboard.append([InlineKeyboardButton('Сколько я уже курю', callback_data = 'smoking')])
-    if added:
+    row = []
+    for e in available_events:
+        row.append(InlineKeyboardButton(e['button'], callback_data = e['key']))
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+    if context.user_data.get('added_events'):
         keyboard.append([InlineKeyboardButton('Давай закончим', callback_data = 'finish')])
 
-    if len(added) == 0: 
+    if not context.user_data.get('added_events'):
         await context.bot.send_message(
             chat_id      = update.effective_chat.id,
-            text         = f'Что хочешь добавить? Давай начнем с чего-то одного, чтобы ты научил{"ась" if gender == "female" else "ся"} создавать свои календари сам{"а" if gender == "female" else ""}',
+            text         = f'Что хочешь добавить? Для начала выбери одно событие. Со временем ты сможешь создавать свои календари сам{"а" if user_data["gender"] == "female" else ""}',
             parse_mode   = 'Markdown',
             reply_markup = InlineKeyboardMarkup(keyboard)
         )
         return ASK_TYPE
-    
-    elif len(keyboard) == 1: 
-        return await ask_habits_intro(update, context) 
-        # return await finish_start(update, context)
 
-    elif keyboard:
-        await context.bot.send_message(
-            chat_id      = update.effective_chat.id,
-            text         = f'Что еще хочешь добавить? Чуть позже научу тебя добавлять любые события уже без моих подсказок',
-            parse_mode   = 'Markdown',
-            reply_markup = InlineKeyboardMarkup(keyboard)
-        )
-        return ASK_TYPE
-    
-    else:
+    if len(keyboard) == 1:
         return await ask_habits_intro(update, context)
-        # return await finish_start(update, context)
+
+    await context.bot.send_message(
+        chat_id      = update.effective_chat.id,
+        text         = 'Что ещё хочешь добавить? Чуть позже научу тебя добавлять любые события уже без моих подсказок',
+        parse_mode   = 'Markdown',
+        reply_markup = InlineKeyboardMarkup(keyboard)
+    )
+    return ASK_TYPE
+
 
 @keep_typing
 async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -247,116 +278,80 @@ async def ask_dates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if answer == 'finish':
         await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
         return await ask_habits_intro(update, context)
-        # return await finish_start(update, context)
+
     user_data = await get_user_data(update.effective_user.id)
     gender = user_data.get('gender')
+    events = _get_events(gender)
+
     if not gender:
         await context.bot.send_message(
             chat_id    = update.effective_chat.id,
-            text       = 'Упс, не получилось получить твои данные. Давай начнём заново: нажми /start',
+            text       = 'Упс, не получилось вспомнить твои данные. Давай начнём заново? Нажми на /start',
             parse_mode = 'Markdown',
         )
         return ConversationHandler.END
 
-    await context.bot.delete_message(
-        chat_id = query.message.chat.id,
-        message_id = query.message.message_id
-    )
+    await context.bot.delete_message(chat_id = query.message.chat.id, message_id = query.message.message_id)
 
     first = not context.user_data.get('added_events')
-    context.user_data['event_type'] = answer
-    if answer == 'education':
-        text = f'Во сколько лет ты пош{"ла" if gender == "female" else "ел"} в школу и во сколько закончил{"а" if gender == "female" else ""} или закончишь учебу? Напиши одним сообщением в формате: «С 7 до 22 лет»'
-        await set_empty_event(update.effective_user.id, 'Образование', first = first)
+    picked = None
 
-    elif answer == 'school':
-        text = f'Во сколько лет ты пош{"ла" if gender == "female" else "ел"} в школу и сколько классов отучил{"ась" if gender == "female" else "ся"}? Напиши одним сообщением в формате: «В 7 лет, 11 классов»'
-        await set_empty_event(update.effective_user.id, 'Школа', first = first)
+    for age_range in events:
+        for _, events in age_range.items():
+            picked = next((e for e in events if e['key'] == answer), None)
+            if picked:
+                break
+        if picked:
+            break
 
-    elif answer == 'smoking':
-        text = f'Напиши возраст, в котором ты начал{"а" if gender == "female" else ""} курить. Например, напиши «В 16 лет».\n\nЕсли уже бросил{"а" if gender == "female" else ""}, то напиши, во сколько это было. Например, «С 16 до 23 лет».'
-        await set_empty_event(update.effective_user.id, 'Курение', first = first)
+    if not picked:
+        await context.bot.send_message(
+            chat_id    = update.effective_chat.id, 
+            text       = 'Случайно потеряла то, что ты выбрал. Давай ещё раз', 
+            parse_mode = 'Markdown'
+        )
+        return ASK_TYPE
 
-    else:
-        text = 'С какого возраста ты работаешь? Ответь в формате «С 16 лет» или «С 16 до 49 лет»'
-        await set_empty_event(update.effective_user.id, 'Работа', first = first)
+    context.user_data['event_key']     = picked['key']
+    context.user_data['event_label']   = picked['label']
+    context.user_data['event_message'] = picked['message']
+    await set_empty_event(update.effective_user.id, picked['label'], first = first)
 
-    await asyncio.sleep(random.uniform(1, 3))
+    await asyncio.sleep(3)
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
-        text         = text, 
+        text         = context.user_data['event_message'], 
         parse_mode   = 'Markdown', 
     )
     return ASK_DATE
 
 @keep_typing
 async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    event_key = context.user_data.get('event_type')
-    key_map = {
-        'education' : 'Образование',
-        'school'    : 'Школа',
-        'smoking'   : 'Курение',
-        'job'       : 'Работа'
-    }
-    event_type = key_map.get(event_key)
     answer = update.message.text
-
     user_data = await get_user_data(update.effective_user.id)
     day, month, year = map(int, user_data['birth'].split('.'))
     birth = date(year, month, day)
 
-    if event_type == 'Школа': 
-        try: 
-            age, length = map(int, re.search(r'(\d+).*?(\d+)', answer).groups())
-            start = date(year + age + ((month, day) > (8, 31)), 9, 1)
-            end = date(start.year + length, 6, 20)
-            event = (start, end)
-        except: 
-            await context.bot.send_message(
-                chat_id      = update.effective_chat.id,
-                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «В 7 лет, 11 классов»', 
-                parse_mode   = 'Markdown', 
-            )
-            return ASK_DATE
-    elif event_type == 'Образование': 
-        try: 
-            m = re.search(r'(\d+).*?(\d+)', answer)
-            start, end = map(int, m.groups())
-            start = date(year + start + ((month, day) > (8, 31)), 9, 1)
-            end = date(year + end + ((month, day) > (8, 31)), 6, 20)
-            event = (start, end)
-        except: 
-            await context.bot.send_message(
-                chat_id      = update.effective_chat.id,
-                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 7 до 22 лет»', 
-                parse_mode   = 'Markdown', 
-            ) 
-            return ASK_DATE
-    else:
-        try:
-            event = parse_dates(answer, date(year, month, day))
-        except ValueError:
-            await context.bot.send_message(
-                chat_id      = update.effective_chat.id,
-                text         = 'Не могу прочитать твой текст😔 Напиши возраст еще раз, в формате «С 16 лет» или «С 16 до 23 лет»',
-                parse_mode   = 'Markdown',
-            )
-            return ASK_DATE
+    label = context.user_data.get('event_label')
+    key   = context.user_data.get('event_key')
 
-    await set_event(update.effective_user.id, event_type, event)
-    key_map = {
-        'Образование' : 'education',
-        'Школа'       : 'school',
-        'Курение'     : 'smoking',
-        'Работа'      : 'job'
-    }
-    ev_key = key_map.get(event_type)
-    if ev_key:
-        context.user_data.setdefault('added_events', set()).add(ev_key)
+    try:
+        event = parse_dates(answer, birth)
+    except Exception:
+        await context.bot.send_message(
+            chat_id    = update.effective_chat.id,
+            text       = 'Не могу прочитать твою дату...' + context.user_data['event_message'], 
+            parse_mode = 'Markdown', 
+        )
+        return ASK_DATE
+
+    await set_event(update.effective_user.id, label, event)
+    if key:
+        context.user_data.setdefault('added_events', set()).add(key)
 
     filename = f'tmp/{secrets.token_hex(8)}.png'
     female = user_data['gender'] == 'female'
-    create_calendar(birth, fname = filename, female = female, event = event, label = event_type)
+    create_calendar(birth, fname = filename, female = female, event = event, label = label)
 
     with open(filename, 'rb') as photo:
         await context.bot.send_document(
@@ -366,16 +361,19 @@ async def create_second_calendar(update: Update, context: ContextTypes.DEFAULT_T
             parse_mode = 'Markdown'
         )
         os.remove(filename)
-
+    await context.bot.send_chat_action(
+        chat_id = update.effective_chat.id, 
+        action  = ChatAction.TYPING
+    )
     await asyncio.sleep(3)
 
-    keyboard = [
-        [InlineKeyboardButton('Конечно!', callback_data = 'more_yes')],
-        [InlineKeyboardButton('Лучше потом', callback_data = 'more_no')]
-    ]
+    keyboard = [[
+        InlineKeyboardButton('Конечно!', callback_data = 'more_yes'),
+        InlineKeyboardButton('Лучше потом', callback_data = 'more_no')
+    ]]
     await context.bot.send_message(
         chat_id      = update.effective_chat.id,
-        text         = 'Хочешь заполнить остальные? Это всегда можно сделать позже и добавить на календарь любые события.',
+        text         = 'Хочешь добавить ещё одно событие?',
         parse_mode   = 'Markdown',
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
@@ -406,6 +404,10 @@ async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ),
         parse_mode = 'Markdown',
     )
+    await context.bot.send_chat_action(
+        chat_id = update.effective_chat.id, 
+        action  = ChatAction.TYPING
+    )
 
     await asyncio.sleep(7)
     await context.bot.send_message(
@@ -416,6 +418,10 @@ async def finish_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode = 'Markdown',
     )
 
+    # await context.bot.send_chat_action(
+    #     chat_id = update.effective_chat.id, 
+    #     action  = ChatAction.TYPING
+    # )
     # await asyncio.sleep(3)
     # await context.bot.send_message(
     #     chat_id      = update.effective_chat.id,

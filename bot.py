@@ -7,8 +7,10 @@ from handlers.handle_start import (
     create_second_calendar, clean_data, ask_more
 )
 from handlers.handle_habits import (
-    HABITS_WANT, HABITS_DECIDE, HABITS_PICK, HABITS_ASK,
-    handle_habits, habits_want_answer, habits_decide_answer, habits_pick_answer, habits_one_answer
+    HABITS_WANT, HABITS_DECIDE, HABITS_PICK, HABITS_ASK, HABBITS_EFFECTS, 
+    HABITS_EFFECTS_DECIDE, 
+    handle_habits, habits_want_answer, habits_decide_answer, habits_pick_answer, 
+    habits_one_answer, habits_effects_answer, habits_decide
 )
 from handlers.habits import habits_intro_answer, habits_question_answer, habits_effects_answer
 from handlers.handle_oblivion import DELETE_ACCOUNT, handle_oblivion, oblivion_answer
@@ -170,10 +172,12 @@ def main():
     habits_conversation = ConversationHandler(
         entry_points = [CommandHandler('habits', handle_habits)],
         states = {
-            HABITS_WANT   : [CallbackQueryHandler(habits_want_answer)],
-            HABITS_DECIDE : [CallbackQueryHandler(habits_decide_answer)],
-            HABITS_PICK   : [CallbackQueryHandler(habits_pick_answer)],
-            HABITS_ASK    : [CallbackQueryHandler(habits_one_answer)],
+            HABITS_WANT           : [CallbackQueryHandler(habits_want_answer)],
+            HABITS_DECIDE         : [CallbackQueryHandler(habits_decide_answer)],
+            HABITS_PICK           : [CallbackQueryHandler(habits_pick_answer)],
+            HABITS_ASK            : [CallbackQueryHandler(habits_one_answer)],
+            HABBITS_EFFECTS       : [CallbackQueryHandler(habits_effects_answer)], 
+            HABITS_EFFECTS_DECIDE : [CallbackQueryHandler(habits_decide)], 
         },
         fallbacks = [CommandHandler('cancel', cancel)],
         allow_reentry = True
